@@ -1,30 +1,25 @@
 /* =========================================================
    US SIGNAL | WEBEX PARTNER PORTAL
-   Enterprise UI – Light First, Dark Optional
+   Enterprise UI – Executive Grade
 ========================================================= */
 
 /* =========================================================
-   THEME VARIABLES
+   THEME VARIABLES (LIGHT DEFAULT)
 ========================================================= */
 :root {
-  /* Base */
   --bg: #f4f6fb;
   --surface: #ffffff;
   --surface-muted: #f1f3f8;
 
-  /* Text */
   --text: #0f172a;
   --text-muted: #6b7280;
   --text-soft: #9ca3af;
 
-  /* Brand */
   --brand: #003a8f;
   --brand-hover: #002b6f;
 
-  /* Borders & dividers */
   --border: #d7dde7;
 
-  /* Status */
   --green: #15803d;
   --green-bg: #e6f4ea;
 
@@ -37,19 +32,48 @@
   --unknown: #6b7280;
   --unknown-bg: #eef2f7;
 
-  /* Effects */
   --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
-  --shadow-md: 0 8px 24px rgba(0,0,0,.08);
+  --shadow-md: 0 10px 28px rgba(0,0,0,.08);
 
   --radius-sm: 6px;
-  --radius-md: 10px;
+  --radius-md: 12px;
 }
 
 /* =========================================================
-   DARK MODE (AUTO)
+   DARK MODE (MANUAL OVERRIDE)
+========================================================= */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0b1220;
+  --surface: #121a2c;
+  --surface-muted: #1c2541;
+
+  --text: #e5e7eb;
+  --text-muted: #9ca3af;
+  --text-soft: #6b7280;
+
+  --brand: #4f8cff;
+  --brand-hover: #3b6fd8;
+
+  --border: #24304d;
+
+  --green-bg: rgba(21,128,61,.25);
+  --yellow-bg: rgba(180,83,9,.25);
+  --red-bg: rgba(185,28,28,.25);
+  --unknown-bg: rgba(148,163,184,.2);
+
+  --shadow-sm: 0 2px 4px rgba(0,0,0,.6);
+  --shadow-md: 0 16px 40px rgba(0,0,0,.7);
+}
+
+/* =========================================================
+   AUTO DARK (IF NO MANUAL OVERRIDE)
 ========================================================= */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+
     --bg: #0b1220;
     --surface: #121a2c;
     --surface-muted: #1c2541;
@@ -62,14 +86,6 @@
     --brand-hover: #3b6fd8;
 
     --border: #24304d;
-
-    --green-bg: rgba(21,128,61,.25);
-    --yellow-bg: rgba(180,83,9,.25);
-    --red-bg: rgba(185,28,28,.25);
-    --unknown-bg: rgba(148,163,184,.2);
-
-    --shadow-sm: 0 1px 3px rgba(0,0,0,.5);
-    --shadow-md: 0 12px 32px rgba(0,0,0,.65);
   }
 }
 
@@ -103,15 +119,15 @@ a:hover {
 }
 
 /* =========================================================
-   TOP NAV
+   TOP BAR
 ========================================================= */
 .topbar {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   padding: 14px 22px;
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   box-shadow: var(--shadow-sm);
 }
 
@@ -135,8 +151,30 @@ a:hover {
   color: var(--text-muted);
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
 .nav a {
-  margin-left: 20px;
+  margin-left: 18px;
+}
+
+/* =========================================================
+   THEME TOGGLE
+========================================================= */
+#theme-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+#theme-toggle:hover {
+  background: var(--surface-muted);
 }
 
 /* =========================================================
@@ -151,12 +189,24 @@ a:hover {
 .page-header h1 {
   margin: 0;
   font-size: 26px;
-  font-weight: 700;
 }
 
 .page-description {
   margin-top: 6px;
   color: var(--text-muted);
+}
+
+/* =========================================================
+   GRID
+========================================================= */
+.grid {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
 /* =========================================================
@@ -170,26 +220,13 @@ a:hover {
   box-shadow: var(--shadow-md);
 }
 
-.card h2 {
-  margin: 0 0 12px;
-  font-size: 17px;
+.card h2,
+.card h3 {
+  margin: 0 0 10px;
 }
 
 /* =========================================================
-   GRID
-========================================================= */
-.grid {
-  display: grid;
-  gap: 18px;
-  margin-top: 18px;
-}
-
-.summary-grid {
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-}
-
-/* =========================================================
-   SUMMARY KPIs
+   KPI / SUMMARY
 ========================================================= */
 .summary {
   text-align: center;
@@ -209,7 +246,7 @@ a:hover {
 }
 
 /* =========================================================
-   BADGES (HEALTH)
+   BADGES
 ========================================================= */
 .badge {
   display: inline-block;
@@ -238,8 +275,8 @@ th {
   text-align: left;
   font-size: 12px;
   color: var(--text-muted);
-  padding-bottom: 8px;
   border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
 }
 
 td {
@@ -250,25 +287,6 @@ td {
 tr:last-child td {
   border-bottom: none;
 }
-
-/* =========================================================
-   TREND DOTS
-========================================================= */
-.trend-row {
-  display: flex;
-  gap: 6px;
-}
-
-.trend-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-.trend-dot.health-green { background: var(--green); }
-.trend-dot.health-yellow { background: var(--yellow); }
-.trend-dot.health-red { background: var(--red); }
-.trend-dot.health-unknown { background: var(--border); }
 
 /* =========================================================
    BUTTONS
@@ -284,6 +302,21 @@ button {
 
 button:hover {
   background: var(--surface);
+}
+
+/* =========================================================
+   EXECUTIVE EMPTY STATES
+========================================================= */
+.empty-state {
+  padding: 32px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.empty-state strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text);
 }
 
 /* =========================================================
@@ -303,25 +336,4 @@ button:hover {
   text-align: center;
   font-size: 12px;
   color: var(--text-muted);
-}
-/* =========================================================
-   THEME TOGGLE
-========================================================= */
-#theme-toggle {
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 6px 10px;
-  cursor: pointer;
-  font-size: 14px;
-  margin-left: 12px;
-}
-
-#theme-toggle:hover {
-  background: var(--surface-muted);
-}
-
-/* Manual override */
-[data-theme="dark"] {
-  color-scheme: dark;
 }
