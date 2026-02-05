@@ -211,6 +211,8 @@ function setTabs() {
    Page init
 ========================================================= */
 document.addEventListener("DOMContentLoaded", () => {
+  if (document.body.dataset.page === "dashboard") initDashboardPage();
+
   if (qs("#customers-table")) initCustomersPage();
   if (qs("#customer-detail") || qs("#tab-licenses")) initCustomerPage();
   if (qs("#exec-table")) initExecutivePage();
@@ -246,6 +248,25 @@ async function initCustomersPage() {
     tbody.innerHTML = `
       <tr><td colspan="5" class="health-red">Failed to load customers: ${escapeHtml(err.message)}</td></tr>
     `;
+  }
+}
+/* =========================================================
+   Dashboard page (KPIs)
+========================================================= */
+async function initDashboardPage() {
+  const elCustomers = qs("#kpi-customers");
+  if (!elCustomers) return;
+
+  try {
+    const data = await loadCustomers();
+    const count = Array.isArray(data.customers)
+      ? data.customers.length
+      : 0;
+
+    elCustomers.textContent = count.toLocaleString();
+  } catch (err) {
+    elCustomers.innerHTML = `<span class="health-red">Error</span>`;
+    console.error("Failed to load Customers KPI:", err);
   }
 }
 
