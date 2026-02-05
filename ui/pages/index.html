@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="/styles.css">
 </head>
 
-<body>
+<body data-page="dashboard">
 
   <!-- =========================================================
        TOP NAV / BRANDING
@@ -159,15 +159,15 @@
   </footer>
 
   <!-- =========================================================
-       BASIC JS BOOTSTRAP (SAFE / READ-ONLY)
+       BASIC JS BOOTSTRAP
   ========================================================== -->
   <script>
     document.getElementById("year").textContent =
       new Date().getFullYear();
   </script>
 
-  <!-- App logic (we will expand later) -->
-  <script src="/app.js"></script>
+  <!-- App logic -->
+  <script src="/app.js" defer></script>
 
 </body>
 </html>
