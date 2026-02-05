@@ -304,3 +304,24 @@ button:hover {
   font-size: 12px;
   color: var(--text-muted);
 }
+/* =========================================================
+   THEME TOGGLE
+========================================================= */
+#theme-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-left: 12px;
+}
+
+#theme-toggle:hover {
+  background: var(--surface-muted);
+}
+
+/* Manual override */
+[data-theme="dark"] {
+  color-scheme: dark;
+}
