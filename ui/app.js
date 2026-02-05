@@ -257,8 +257,9 @@ async function initDashboardPage() {
   const elCustomers = qs("#kpi-customers");
   const elHealth = qs("#kpi-health");
   const elLicenses = qs("#kpi-licenses");
+  const elPlatform = qs("#kpi-platform");
 
-  if (!elCustomers && !elHealth && !elLicenses) return;
+  if (!elCustomers && !elHealth && !elLicenses && !elPlatform) return;
 
   try {
     const data = await loadCustomers();
@@ -278,7 +279,6 @@ async function initDashboardPage() {
     ============================ */
     if (elHealth) {
       elHealth.textContent = "Evaluating…";
-
       let worstHealth = "green";
 
       for (const c of customers) {
@@ -289,7 +289,6 @@ async function initDashboardPage() {
         if (healthOrder(overall) > healthOrder(worstHealth)) {
           worstHealth = overall;
         }
-
         if (worstHealth === "red") break;
       }
 
@@ -301,7 +300,6 @@ async function initDashboardPage() {
     ============================ */
     if (elLicenses) {
       elLicenses.textContent = "Checking…";
-
       let atRisk = false;
 
       for (const c of customers) {
@@ -312,7 +310,7 @@ async function initDashboardPage() {
 
         if (deficient > 0) {
           atRisk = true;
-          break; // one is enough to mark risk
+          break;
         }
       }
 
@@ -321,41 +319,39 @@ async function initDashboardPage() {
         : healthBadge("green");
     }
 
+    /* ============================
+       Platform Status KPI
+    ============================ */
+    if (elPlatform) {
+      elPlatform.textContent = "Checking…";
+
+      try {
+        const status = await apiFetch("/status", {
+          cacheKey: "platform-status",
+          ttl: 60 * 1000
+        });
+
+        const components = status.components || [];
+        const degraded = components.some(c =>
+          c.status && c.status !== "operational"
+        );
+
+        elPlatform.innerHTML = degraded
+          ? healthBadge("red")
+          : healthBadge("green");
+
+      } catch {
+        elPlatform.innerHTML = `<span class="health-unknown">unknown</span>`;
+      }
+    }
+
   } catch (err) {
     console.error("Failed to load Dashboard KPIs:", err);
 
     if (elCustomers) elCustomers.innerHTML = `<span class="health-red">Error</span>`;
     if (elHealth) elHealth.innerHTML = `<span class="health-red">Error</span>`;
     if (elLicenses) elLicenses.innerHTML = `<span class="health-red">Error</span>`;
-  }
-}
-
-/* =========================================================
-   Platform KPI
-========================================================= */
-const elPlatform = qs("#kpi-platform");
-
-if (elPlatform) {
-  elPlatform.textContent = "Checking…";
-
-  try {
-    const status = await apiFetch("/status", {
-      cacheKey: "platform-status",
-      ttl: 60 * 1000
-    });
-
-    const components = status.components || [];
-
-    const degraded = components.some(c =>
-      c.status && c.status !== "operational"
-    );
-
-    elPlatform.innerHTML = degraded
-      ? healthBadge("red")
-      : healthBadge("green");
-
-  } catch (err) {
-    elPlatform.innerHTML = `<span class="health-unknown">unknown</span>`;
+    if (elPlatform) elPlatform.innerHTML = `<span class="health-red">Error</span>`;
   }
 }
 
