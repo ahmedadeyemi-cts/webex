@@ -595,8 +595,21 @@ async function hydrateDevices(key) {
       return;
     }
 
-    tbody.innerHTML = `<tr><td colspan="6" class="health-red">Failed: ${escapeHtml(err.message)}</td></tr>`;
-    summary && (summary.textContent = "Failed to load devices.");
+    tbody.innerHTML = `
+  <tr>
+    <td colspan="6">
+      <div class="empty-state">
+        <div class="empty-title">Device data unavailable</div>
+        <div class="empty-text">
+          Device inventory is not currently accessible from Webex Control Hub
+          or the API endpoint is not yet enabled.
+        </div>
+      </div>
+    </td>
+  </tr>
+`;
+summary && (summary.textContent = "Device data not available.");
+
   }
 }
 
@@ -727,7 +740,19 @@ async function hydrateAlerts(key) {
         </td></tr>`;
       return;
     }
-    tbody.innerHTML = `<tr><td colspan="4" class="health-red">Failed: ${escapeHtml(err.message)}</td></tr>`;
+    tbody.innerHTML = `
+  <tr>
+    <td colspan="4">
+      <div class="empty-state">
+        <div class="empty-title">No health alerts</div>
+        <div class="empty-text">
+          This customer has not triggered any health transitions
+          that required notification.
+        </div>
+      </div>
+    </td>
+  </tr>
+`;
   }
 }
 
