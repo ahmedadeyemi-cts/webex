@@ -1,0 +1,11 @@
+{
+  "customers": [
+    {
+      "key": "demo",
+      "name": "Demo Customer",
+      "orgId": "PASTE_ORGID_HERE",
+      "licenseThresholdPct": 10,
+      "notifyEmails": ["internal@ussignal.com"]
+    }
+  ]
+}
