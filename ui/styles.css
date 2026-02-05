@@ -1,25 +1,31 @@
 /* =========================================================
    US SIGNAL | WEBEX PARTNER PORTAL
-   Enterprise UI – Executive Grade
+   Executive Enterprise UI
+   Light Default · Dark Optional (Manual + Auto)
 ========================================================= */
 
 /* =========================================================
-   THEME VARIABLES (LIGHT DEFAULT)
+   THEME VARIABLES — LIGHT (DEFAULT)
 ========================================================= */
 :root {
-  --bg: #f4f6fb;
+  /* Layout */
+  --bg: #f6f8fc;
   --surface: #ffffff;
-  --surface-muted: #f1f3f8;
+  --surface-muted: #f1f4f9;
 
+  /* Text */
   --text: #0f172a;
-  --text-muted: #6b7280;
-  --text-soft: #9ca3af;
+  --text-muted: #64748b;
+  --text-soft: #94a3b8;
 
+  /* Brand */
   --brand: #003a8f;
   --brand-hover: #002b6f;
 
-  --border: #d7dde7;
+  /* Borders */
+  --border: #dbe2ee;
 
+  /* Status */
   --green: #15803d;
   --green-bg: #e6f4ea;
 
@@ -29,10 +35,11 @@
   --red: #b91c1c;
   --red-bg: #fdecec;
 
-  --unknown: #6b7280;
+  --unknown: #64748b;
   --unknown-bg: #eef2f7;
 
-  --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+  /* Effects */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.04);
   --shadow-md: 0 10px 28px rgba(0,0,0,.08);
 
   --radius-sm: 6px;
@@ -40,14 +47,12 @@
 }
 
 /* =========================================================
-   DARK MODE (MANUAL OVERRIDE)
+   DARK MODE VARIABLES (MANUAL OVERRIDE)
 ========================================================= */
-[data-theme="dark"] {
-  color-scheme: dark;
-
+html[data-theme="dark"] {
   --bg: #0b1220;
   --surface: #121a2c;
-  --surface-muted: #1c2541;
+  --surface-muted: #1b2440;
 
   --text: #e5e7eb;
   --text-muted: #9ca3af;
@@ -63,38 +68,16 @@
   --red-bg: rgba(185,28,28,.25);
   --unknown-bg: rgba(148,163,184,.2);
 
-  --shadow-sm: 0 2px 4px rgba(0,0,0,.6);
-  --shadow-md: 0 16px 40px rgba(0,0,0,.7);
-}
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.5);
+  --shadow-md: 0 14px 36px rgba(0,0,0,.65);
 
-/* =========================================================
-   AUTO DARK (IF NO MANUAL OVERRIDE)
-========================================================= */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) {
-    color-scheme: dark;
-
-    --bg: #0b1220;
-    --surface: #121a2c;
-    --surface-muted: #1c2541;
-
-    --text: #e5e7eb;
-    --text-muted: #9ca3af;
-    --text-soft: #6b7280;
-
-    --brand: #4f8cff;
-    --brand-hover: #3b6fd8;
-
-    --border: #24304d;
-  }
+  color-scheme: dark;
 }
 
 /* =========================================================
    RESET & BASE
 ========================================================= */
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 html, body {
   margin: 0;
@@ -109,8 +92,8 @@ html, body {
 ========================================================= */
 a {
   color: var(--brand);
-  text-decoration: none;
   font-weight: 500;
+  text-decoration: none;
 }
 
 a:hover {
@@ -126,8 +109,8 @@ a:hover {
   border-bottom: 1px solid var(--border);
   padding: 14px 22px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   box-shadow: var(--shadow-sm);
 }
 
@@ -137,9 +120,7 @@ a:hover {
   gap: 14px;
 }
 
-.logo {
-  height: 38px;
-}
+.logo { height: 38px; }
 
 .title {
   font-size: 15px;
@@ -151,21 +132,16 @@ a:hover {
   color: var(--text-muted);
 }
 
-.topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
 .nav a {
-  margin-left: 18px;
+  margin-left: 22px;
+  font-size: 14px;
 }
 
 /* =========================================================
    THEME TOGGLE
 ========================================================= */
 #theme-toggle {
-  background: transparent;
+  background: var(--surface-muted);
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 6px 10px;
@@ -174,7 +150,7 @@ a:hover {
 }
 
 #theme-toggle:hover {
-  background: var(--surface-muted);
+  background: var(--surface);
 }
 
 /* =========================================================
@@ -189,6 +165,7 @@ a:hover {
 .page-header h1 {
   margin: 0;
   font-size: 26px;
+  font-weight: 700;
 }
 
 .page-description {
@@ -197,12 +174,32 @@ a:hover {
 }
 
 /* =========================================================
+   CARDS
+========================================================= */
+.card {
+  background: linear-gradient(
+    180deg,
+    var(--surface),
+    var(--surface-muted)
+  );
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-md);
+}
+
+.card h2 {
+  margin: 0 0 10px;
+  font-size: 18px;
+}
+
+/* =========================================================
    GRID
 ========================================================= */
 .grid {
   display: grid;
-  gap: 18px;
-  margin-top: 18px;
+  gap: 20px;
+  margin-top: 20px;
 }
 
 .summary-grid {
@@ -210,51 +207,30 @@ a:hover {
 }
 
 /* =========================================================
-   CARDS
+   HEALTH SUMMARY / LABEL STACK
 ========================================================= */
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 18px 22px;
-  box-shadow: var(--shadow-md);
+.health-list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 16px;
+  margin-top: 12px;
 }
 
-.card h2,
-.card h3 {
-  margin: 0 0 10px;
-}
-
-/* =========================================================
-   KPI / SUMMARY
-========================================================= */
-.summary {
-  text-align: center;
-}
-
-.summary-label {
-  font-size: 11px;
-  color: var(--text-muted);
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  margin-bottom: 6px;
-}
-
-.summary-value {
-  font-size: 20px;
-  font-weight: 700;
+.health-list span {
+  font-size: 14px;
 }
 
 /* =========================================================
    BADGES
 ========================================================= */
 .badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   padding: 4px 10px;
   font-size: 11px;
   font-weight: 700;
   border-radius: 999px;
-  text-transform: uppercase;
+  letter-spacing: .04em;
 }
 
 .health-green { color: var(--green); background: var(--green-bg); }
@@ -268,13 +244,14 @@ a:hover {
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 th {
-  text-align: left;
   font-size: 12px;
   color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
   border-bottom: 1px solid var(--border);
   padding-bottom: 8px;
 }
@@ -284,9 +261,7 @@ td {
   border-bottom: 1px solid var(--border);
 }
 
-tr:last-child td {
-  border-bottom: none;
-}
+tr:last-child td { border-bottom: none; }
 
 /* =========================================================
    BUTTONS
@@ -294,10 +269,10 @@ tr:last-child td {
 button {
   background: var(--surface-muted);
   border: 1px solid var(--border);
-  padding: 6px 12px;
+  padding: 6px 14px;
   border-radius: var(--radius-sm);
-  cursor: pointer;
   font-weight: 500;
+  cursor: pointer;
 }
 
 button:hover {
@@ -305,26 +280,14 @@ button:hover {
 }
 
 /* =========================================================
-   EXECUTIVE EMPTY STATES
+   EMPTY / EXECUTIVE STATES
 ========================================================= */
 .empty-state {
-  padding: 32px;
+  padding: 24px;
   text-align: center;
   color: var(--text-muted);
+  font-size: 14px;
 }
-
-.empty-state strong {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--text);
-}
-
-/* =========================================================
-   UTILITIES
-========================================================= */
-.muted { color: var(--text-muted); }
-.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.hidden { display: none; }
 
 /* =========================================================
    FOOTER
