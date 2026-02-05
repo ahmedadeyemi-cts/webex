@@ -256,8 +256,9 @@ async function initCustomersPage() {
 async function initDashboardPage() {
   const elCustomers = qs("#kpi-customers");
   const elHealth = qs("#kpi-health");
+  const elLicenses = qs("#kpi-licenses");
 
-  if (!elCustomers && !elHealth) return;
+  if (!elCustomers && !elHealth && !elLicenses) return;
 
   try {
     const data = await loadCustomers();
@@ -265,45 +266,67 @@ async function initDashboardPage() {
       ? data.customers
       : [];
 
-    // ----------------------------
-    // Customers KPI
-    // ----------------------------
+    /* ============================
+       Customers KPI
+    ============================ */
     if (elCustomers) {
       elCustomers.textContent = customers.length.toLocaleString();
     }
 
-    // ----------------------------
-    // Overall Health KPI
-    // ----------------------------
+    /* ============================
+       Overall Health KPI
+    ============================ */
     if (elHealth) {
       elHealth.textContent = "Evaluating…";
 
-      let worst = "green";
+      let worstHealth = "green";
 
       for (const c of customers) {
         const health = await loadCustomerHealth(c.key);
         const h = health.health || health;
         const overall = health.overall || h.overall || "unknown";
 
-        if (healthOrder(overall) > healthOrder(worst)) {
-          worst = overall;
+        if (healthOrder(overall) > healthOrder(worstHealth)) {
+          worstHealth = overall;
         }
 
-        // short-circuit: cannot get worse than red
-        if (worst === "red") break;
+        if (worstHealth === "red") break;
       }
 
-      elHealth.innerHTML = healthBadge(worst);
+      elHealth.innerHTML = healthBadge(worstHealth);
+    }
+
+    /* ============================
+       License Risk KPI
+    ============================ */
+    if (elLicenses) {
+      elLicenses.textContent = "Checking…";
+
+      let atRisk = false;
+
+      for (const c of customers) {
+        const health = await loadCustomerHealth(c.key);
+        const deficient = Array.isArray(health.deficientSkus)
+          ? health.deficientSkus.length
+          : 0;
+
+        if (deficient > 0) {
+          atRisk = true;
+          break; // one is enough to mark risk
+        }
+      }
+
+      elLicenses.innerHTML = atRisk
+        ? healthBadge("red")
+        : healthBadge("green");
     }
 
   } catch (err) {
-    if (elCustomers) {
-      elCustomers.innerHTML = `<span class="health-red">Error</span>`;
-    }
-    if (elHealth) {
-      elHealth.innerHTML = `<span class="health-red">Error</span>`;
-    }
     console.error("Failed to load Dashboard KPIs:", err);
+
+    if (elCustomers) elCustomers.innerHTML = `<span class="health-red">Error</span>`;
+    if (elHealth) elHealth.innerHTML = `<span class="health-red">Error</span>`;
+    if (elLicenses) elLicenses.innerHTML = `<span class="health-red">Error</span>`;
   }
 }
 
