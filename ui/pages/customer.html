@@ -1,266 +1,236 @@
 <!doctype html>
-<html lang="en">
+<html>
 <head>
   <meta charset="utf-8" />
   <title>Customer | US Signal Webex Partner Portal</title>
-
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description"
-        content="Customer deep dive: health trends, licenses, devices, and operational risk." />
-
   <link rel="stylesheet" href="/styles.css">
 </head>
-
 <body>
-
-  <!-- =========================================================
-       TOP NAV
-  ========================================================== -->
   <header class="topbar">
     <div class="brand">
-      <img src="/assets/ussignal-logo.jpg" class="logo" />
+      <img src="/assets/ussignal-logo.jpg" class="logo" alt="US Signal" />
       <div>
         <div class="title">US Signal | Webex Partner Portal</div>
-        <div class="subtitle">Customer Operations & Health</div>
+        <div class="sub">Operational visibility • Proactive monitoring • License governance</div>
       </div>
     </div>
-
-    <nav class="nav">
+    <nav>
       <a href="/">Dashboard</a>
       <a href="/customers">Customers</a>
-      <a href="/licenses">Licenses</a>
       <a href="/status">Webex Status</a>
+      <a href="/executive">Executive</a>
       <a href="/sow">SOW</a>
     </nav>
   </header>
 
-  <!-- =========================================================
-       MAIN
-  ========================================================== -->
   <main class="container">
-
-    <!-- PAGE HEADER -->
-    <section class="page-header">
-      <h1 id="customer-name">Customer</h1>
-      <p class="page-description">
-        Health posture, license risk, and operational trends.
-      </p>
-    </section>
-
-    <!-- =====================================================
-         HEALTH SUMMARY
-    ====================================================== -->
-    <section class="grid summary-grid">
-      <div class="card summary">
-        <div class="summary-label">Overall Health</div>
-        <div id="health-overall" class="summary-value">—</div>
+    <div class="page-head">
+      <div>
+        <h1 id="cust-name">Customer</h1>
+        <div class="muted">
+          <span class="mono" id="cust-key">—</span>
+          <span class="dot-sep">•</span>
+          <span class="mono" id="cust-org">OrgID: —</span>
+        </div>
       </div>
 
-      <div class="card summary">
-        <div class="summary-label">Calling</div>
-        <div id="health-calling" class="summary-value">—</div>
+      <div class="actions">
+        <button class="btn" id="btn-refresh">Refresh</button>
+        <button class="btn btn-primary" id="btn-reeval">Manual Re-eval</button>
+        <button class="btn" id="btn-print">Print Report</button>
       </div>
+    </div>
 
-      <div class="card summary">
-        <div class="summary-label">Messaging</div>
-        <div id="health-messaging" class="summary-value">—</div>
-      </div>
-
-      <div class="card summary">
-        <div class="summary-label">Meetings</div>
-        <div id="health-meetings" class="summary-value">—</div>
-      </div>
-
-      <div class="card summary">
-        <div class="summary-label">Devices</div>
-        <div id="health-devices" class="summary-value">—</div>
-      </div>
-    </section>
-
-    <!-- =====================================================
-         HEALTH TREND
-    ====================================================== -->
-    <section class="card">
-      <h2>Health Trend (Last 30 Days)</h2>
-      <div id="health-trend" class="trend-row">
-        <span class="loading">Loading history…</span>
-      </div>
-    </section>
-
-    <!-- =====================================================
-         LICENSE POSTURE
-    ====================================================== -->
-    <section class="card">
-      <h2>License Posture</h2>
-
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>SKU</th>
-            <th>Total</th>
-            <th>Used</th>
-            <th>Available</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody id="licenses-body">
-          <tr>
-            <td colspan="5" class="loading">Loading licenses…</td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
-
-    <!-- =====================================================
-         OPERATIONAL NOTES / NEXT ACTIONS
-    ====================================================== -->
-    <section class="grid two-col">
+    <div class="grid-2">
       <div class="card">
-        <h2>Operational Risk</h2>
-        <ul id="risk-list">
-          <li class="muted">No risks detected.</li>
-        </ul>
+        <div class="card-title">Health Summary</div>
+
+        <div class="health-grid">
+          <div class="health-cell">
+            <div class="muted">Overall</div>
+            <div id="health-overall">—</div>
+          </div>
+          <div class="health-cell">
+            <div class="muted">Calling</div>
+            <div id="health-calling">—</div>
+          </div>
+          <div class="health-cell">
+            <div class="muted">Messaging</div>
+            <div id="health-messaging">—</div>
+          </div>
+          <div class="health-cell">
+            <div class="muted">Meetings</div>
+            <div id="health-meetings">—</div>
+          </div>
+          <div class="health-cell">
+            <div class="muted">Devices</div>
+            <div id="health-devices">—</div>
+          </div>
+          <div class="health-cell">
+            <div class="muted">Evaluated</div>
+            <div class="mono" id="health-evaluated">—</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="row between">
+          <div class="card-title">30-day Trend</div>
+          <div class="muted small" id="trend-hint">—</div>
+        </div>
+        <div id="health-trends" class="trend-wrap">—</div>
+
+        <div id="transition-banner" class="banner hidden"></div>
       </div>
 
       <div class="card">
-        <h2>Recommended Actions</h2>
-        <ul id="action-list">
-          <li class="muted">No actions required.</li>
-        </ul>
+        <div class="row between">
+          <div class="card-title">Deficient SKUs</div>
+          <button class="btn btn-small" id="btn-email-alert">Send License Alert Email</button>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table" id="deficient-table">
+            <thead>
+              <tr>
+                <th>SKU</th>
+                <th>Available</th>
+                <th>Threshold</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="3" class="muted">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs" role="tablist" aria-label="Customer sections">
+      <button class="tab active" data-tab="licenses">Licenses</button>
+      <button class="tab" data-tab="devices">Devices</button>
+      <button class="tab" data-tab="alerts">Health Alerts</button>
+      <button class="tab" data-tab="report">Report</button>
+    </div>
+
+    <!-- Licenses -->
+    <section class="card tabpanel" id="tab-licenses">
+      <div class="row between">
+        <div class="card-title">Licenses</div>
+        <div class="muted small">Source: Webex Control Hub</div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table" id="licenses-table">
+          <thead>
+            <tr>
+              <th>SKU</th>
+              <th>Total</th>
+              <th>Used</th>
+              <th>Available</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="5" class="muted">Loading…</td></tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
+    <!-- Devices -->
+    <section class="card tabpanel hidden" id="tab-devices">
+      <div class="row between">
+        <div>
+          <div class="card-title">Devices</div>
+          <div class="muted small">Offline scoring + drill-down (UI ready; API can be added to worker later)</div>
+        </div>
+        <div class="row gap">
+          <select id="device-filter" class="select">
+            <option value="all">All</option>
+            <option value="offline">Offline / Disconnected</option>
+            <option value="online">Online</option>
+          </select>
+          <input id="device-search" class="input" placeholder="Search devices (name, model, mac, status)" />
+        </div>
+      </div>
+
+      <div id="devices-summary" class="muted small">—</div>
+
+      <div class="table-wrap">
+        <table class="table" id="devices-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Model</th>
+              <th>Status</th>
+              <th>Last Seen</th>
+              <th>Location</th>
+              <th>Root Cause</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="6" class="muted">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="muted small">
+        Root cause is heuristic: power/network/cloud registration hints based on fields returned by Webex devices API.
+      </div>
+    </section>
+
+    <!-- Alerts -->
+    <section class="card tabpanel hidden" id="tab-alerts">
+      <div class="row between">
+        <div>
+          <div class="card-title">Health Alerts (Audit)</div>
+          <div class="muted small">Who was emailed, when, and why — UI ready</div>
+        </div>
+        <button class="btn btn-small" id="btn-refresh-alerts">Refresh Alerts</button>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table" id="alerts-table">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>From → To</th>
+              <th>Why</th>
+              <th>Emailed</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="4" class="muted">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Report -->
+    <section class="card tabpanel hidden" id="tab-report">
+      <div class="row between">
+        <div>
+          <div class="card-title">Printable Customer Report</div>
+          <div class="muted small">One-page executive summary + details</div>
+        </div>
+        <div class="row gap">
+          <button class="btn btn-small" id="btn-open-report">Open Report Page</button>
+          <button class="btn btn-small" id="btn-print-inline">Print</button>
+        </div>
+      </div>
+
+      <div id="report-preview" class="report-preview muted">
+        Loading report preview…
+      </div>
+    </section>
+
+    <!-- marker for app.js -->
+    <div id="customer-detail" data-key="" class="hidden"></div>
   </main>
 
-  <!-- =========================================================
-       FOOTER
-  ========================================================== -->
-  <footer class="footer">
-    <div>
-      © <span id="year"></span> US Signal
-    </div>
-    <div class="footer-sub">
-      Cisco Webex Partner • Internal Use Only
-    </div>
-  </footer>
-
-  <script>
-    document.getElementById("year").textContent =
-      new Date().getFullYear();
-  </script>
-
-  <!-- =========================================================
-       PAGE LOGIC
-  ========================================================== -->
-  <script>
-    const key = location.pathname.split("/").pop();
-
-    const el = id => document.getElementById(id);
-
-    async function loadHealth() {
-      const res = await fetch(`/api/customer/${key}/health`);
-      const data = await res.json();
-
-      el("customer-name").textContent = data.customer.name;
-
-      const h = data.health;
-      setHealth("overall", h.overall);
-      setHealth("calling", h.calling);
-      setHealth("messaging", h.messaging);
-      setHealth("meetings", h.meetings);
-      setHealth("devices", h.devices);
-
-      buildRiskAndActions(h);
-    }
-
-    function setHealth(type, value) {
-      const elx = el(`health-${type}`);
-      elx.textContent = value.toUpperCase();
-      elx.className = `summary-value health-${value}`;
-    }
-
-    async function loadHistory() {
-      const res = await fetch(`/api/customer/${key}/health-history`);
-      const data = await res.json();
-
-      const row = el("health-trend");
-      row.innerHTML = "";
-
-      if (!data.history.length) {
-        row.textContent = "No history available.";
-        return;
-      }
-
-      for (const d of data.history) {
-        row.insertAdjacentHTML("beforeend", `
-          <div class="trend-dot health-${d.overall}"
-               title="${d.date} – ${d.overall}">
-          </div>
-        `);
-      }
-    }
-
-    async function loadLicenses() {
-      const res = await fetch(`/api/customer/${key}/licenses`);
-      const data = await res.json();
-
-      const body = el("licenses-body");
-      body.innerHTML = "";
-
-      for (const l of data.licenses) {
-        body.insertAdjacentHTML("beforeend", `
-          <tr>
-            <td>${l.sku}</td>
-            <td class="mono">${l.total}</td>
-            <td class="mono">${l.used}</td>
-            <td class="mono">${l.available}</td>
-            <td>
-              <span class="badge ${l.deficient ? "health-red" : "health-green"}">
-                ${l.deficient ? "DEFICIENT" : "OK"}
-              </span>
-            </td>
-          </tr>
-        `);
-      }
-    }
-
-    function buildRiskAndActions(h) {
-      const risks = [];
-      const actions = [];
-
-      if (h.overall === "red") {
-        risks.push("Customer health is critical.");
-        actions.push("Escalate to account team immediately.");
-      }
-
-      if (h.devices === "red") {
-        risks.push("High percentage of offline devices.");
-        actions.push("Review device inventory and connectivity.");
-      }
-
-      if (!risks.length) {
-        el("risk-list").innerHTML =
-          "<li class='muted'>No risks detected.</li>";
-      } else {
-        el("risk-list").innerHTML =
-          risks.map(r => `<li>${r}</li>`).join("");
-      }
-
-      if (!actions.length) {
-        el("action-list").innerHTML =
-          "<li class='muted'>No actions required.</li>";
-      } else {
-        el("action-list").innerHTML =
-          actions.map(a => `<li>${a}</li>`).join("");
-      }
-    }
-
-    Promise.all([
-      loadHealth(),
-      loadHistory(),
-      loadLicenses()
-    ]);
-  </script>
-
+  <script src="/app.js"></script>
 </body>
 </html>
