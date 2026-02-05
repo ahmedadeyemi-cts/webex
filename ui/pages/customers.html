@@ -1,27 +1,240 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-  <title>Customers</title>
-  <link rel="stylesheet" href="/styles.css" />
+  <meta charset="utf-8" />
+  <title>Customers | US Signal Webex Partner Portal</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description"
+        content="Customer health, license posture, and device visibility across Webex Calling and Contact Center." />
+
+  <link rel="stylesheet" href="/styles.css">
 </head>
+
 <body>
-  <header>
-    <h1>Customers</h1>
-    <nav><a href="/">Dashboard</a></nav>
+
+  <!-- =========================================================
+       TOP NAV / BRANDING
+  ========================================================== -->
+  <header class="topbar">
+    <div class="brand">
+      <img src="/assets/ussignal-logo.jpg" class="logo" alt="US Signal" />
+      <div>
+        <div class="title">US Signal | Webex Partner Portal</div>
+        <div class="subtitle">
+          Operational visibility • Proactive monitoring • License governance
+        </div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a href="/">Dashboard</a>
+      <a href="/customers" class="active">Customers</a>
+      <a href="/licenses">Licenses</a>
+      <a href="/status">Webex Status</a>
+      <a href="/sow">SOW</a>
+    </nav>
   </header>
 
-  <main>
-    <table id="customers">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Health</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+  <!-- =========================================================
+       MAIN CONTENT
+  ========================================================== -->
+  <main class="container">
+
+    <!-- PAGE HEADER -->
+    <section class="page-header">
+      <h1>Customers</h1>
+      <p class="page-description">
+        Health, licensing, and device posture across all managed Webex organizations.
+      </p>
+    </section>
+
+    <!-- =====================================================
+         CUSTOMER SUMMARY BAR
+    ====================================================== -->
+    <section class="grid summary-grid">
+      <div class="card summary">
+        <div class="summary-label">Total Customers</div>
+        <div class="summary-value" id="summary-total">—</div>
+      </div>
+
+      <div class="card summary">
+        <div class="summary-label">Healthy</div>
+        <div class="summary-value health-green" id="summary-green">—</div>
+      </div>
+
+      <div class="card summary">
+        <div class="summary-label">At Risk</div>
+        <div class="summary-value health-yellow" id="summary-yellow">—</div>
+      </div>
+
+      <div class="card summary">
+        <div class="summary-label">Critical</div>
+        <div class="summary-value health-red" id="summary-red">—</div>
+      </div>
+    </section>
+
+    <!-- =====================================================
+         CONTROLS
+    ====================================================== -->
+    <section class="card controls">
+      <div class="controls-row">
+        <input
+          type="text"
+          id="search"
+          placeholder="Search customers…"
+          class="control-input"
+        />
+
+        <select id="filter-health" class="control-select">
+          <option value="">All Health States</option>
+          <option value="green">Healthy</option>
+          <option value="yellow">At Risk</option>
+          <option value="red">Critical</option>
+        </select>
+
+        <button id="refresh" class="control-button">
+          Refresh
+        </button>
+      </div>
+    </section>
+
+    <!-- =====================================================
+         CUSTOMER TABLE
+    ====================================================== -->
+    <section class="card table-card">
+
+      <table class="customers-table">
+        <thead>
+          <tr>
+            <th>Customer</th>
+            <th>Overall Health</th>
+            <th>Calling</th>
+            <th>Messaging</th>
+            <th>Meetings</th>
+            <th>Devices</th>
+            <th>Org ID</th>
+            <th>Last Evaluated</th>
+          </tr>
+        </thead>
+
+        <tbody id="customers-body">
+          <tr>
+            <td colspan="8" class="loading">
+              Loading customers…
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+    </section>
+
   </main>
 
-  <script src="/app.js"></script>
+  <!-- =========================================================
+       FOOTER
+  ========================================================== -->
+  <footer class="footer">
+    <div>
+      © <span id="year"></span> US Signal
+    </div>
+    <div class="footer-sub">
+      Cisco Webex Certified Partner • Internal Operations Portal
+    </div>
+  </footer>
+
+  <!-- =========================================================
+       BASIC PAGE BOOTSTRAP
+  ========================================================== -->
+  <script>
+    document.getElementById("year").textContent =
+      new Date().getFullYear();
+  </script>
+
+  <!-- =========================================================
+       PAGE LOGIC (NO FRAMEWORKS)
+  ========================================================== -->
+  <script>
+    const body = document.getElementById("customers-body");
+    const summary = {
+      total: document.getElementById("summary-total"),
+      green: document.getElementById("summary-green"),
+      yellow: document.getElementById("summary-yellow"),
+      red: document.getElementById("summary-red")
+    };
+
+    async function loadCustomers() {
+      body.innerHTML =
+        `<tr><td colspan="8" class="loading">Loading customers…</td></tr>`;
+
+      try {
+        const res = await fetch("/api/customers");
+        const data = await res.json();
+
+        const customers = data.customers || [];
+        summary.total.textContent = customers.length;
+
+        let green = 0, yellow = 0, red = 0;
+        body.innerHTML = "";
+
+        for (const c of customers) {
+          const hRes = await fetch(`/api/customer/${c.key}/health`);
+          const h = await hRes.json();
+
+          const health = h.health || {};
+          const overall = health.overall || "unknown";
+
+          if (overall === "green") green++;
+          if (overall === "yellow") yellow++;
+          if (overall === "red") red++;
+
+          body.insertAdjacentHTML("beforeend", `
+            <tr>
+              <td>
+                <a href="/customer/${c.key}">
+                  ${c.name}
+                </a>
+              </td>
+
+              <td>
+                <span class="badge health-${overall}">
+                  ${overall.toUpperCase()}
+                </span>
+              </td>
+
+              <td><span class="badge health-${health.calling}">${health.calling}</span></td>
+              <td><span class="badge health-${health.messaging}">${health.messaging}</span></td>
+              <td><span class="badge health-${health.meetings}">${health.meetings}</span></td>
+              <td><span class="badge health-${health.devices}">${health.devices}</span></td>
+
+              <td class="mono">${c.orgId || "—"}</td>
+              <td class="mono">${h.evaluatedAt?.slice(0, 19) || "—"}</td>
+            </tr>
+          `);
+        }
+
+        summary.green.textContent = green;
+        summary.yellow.textContent = yellow;
+        summary.red.textContent = red;
+
+        if (!customers.length) {
+          body.innerHTML =
+            `<tr><td colspan="8">No customers configured.</td></tr>`;
+        }
+
+      } catch (err) {
+        body.innerHTML =
+          `<tr><td colspan="8" class="error">
+            Failed to load customers.
+          </td></tr>`;
+      }
+    }
+
+    document.getElementById("refresh")
+      .addEventListener("click", loadCustomers);
+
+    loadCustomers();
+  </script>
+
 </body>
 </html>
