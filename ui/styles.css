@@ -1,31 +1,25 @@
 /* =========================================================
    US SIGNAL | WEBEX PARTNER PORTAL
-   Executive Enterprise UI
-   Light Default · Dark Optional (Manual + Auto)
+   Executive Dashboard UI (Light + Dark)
 ========================================================= */
 
 /* =========================================================
-   THEME VARIABLES — LIGHT (DEFAULT)
+   THEME VARIABLES
 ========================================================= */
 :root {
-  /* Layout */
-  --bg: #f6f8fc;
+  --bg: #f4f6fb;
   --surface: #ffffff;
-  --surface-muted: #f1f4f9;
+  --surface-muted: #f1f3f8;
 
-  /* Text */
   --text: #0f172a;
-  --text-muted: #64748b;
-  --text-soft: #94a3b8;
+  --text-muted: #6b7280;
+  --text-soft: #9ca3af;
 
-  /* Brand */
   --brand: #003a8f;
   --brand-hover: #002b6f;
 
-  /* Borders */
-  --border: #dbe2ee;
+  --border: #d7dde7;
 
-  /* Status */
   --green: #15803d;
   --green-bg: #e6f4ea;
 
@@ -38,21 +32,20 @@
   --unknown: #64748b;
   --unknown-bg: #eef2f7;
 
-  /* Effects */
-  --shadow-sm: 0 1px 2px rgba(0,0,0,.04);
-  --shadow-md: 0 10px 28px rgba(0,0,0,.08);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+  --shadow-md: 0 10px 30px rgba(0,0,0,.08);
 
   --radius-sm: 6px;
   --radius-md: 12px;
 }
 
 /* =========================================================
-   DARK MODE VARIABLES (MANUAL OVERRIDE)
+   DARK MODE (MANUAL OVERRIDE)
 ========================================================= */
-html[data-theme="dark"] {
+[data-theme="dark"] {
   --bg: #0b1220;
   --surface: #121a2c;
-  --surface-muted: #1b2440;
+  --surface-muted: #1c2541;
 
   --text: #e5e7eb;
   --text-muted: #9ca3af;
@@ -69,9 +62,7 @@ html[data-theme="dark"] {
   --unknown-bg: rgba(148,163,184,.2);
 
   --shadow-sm: 0 1px 3px rgba(0,0,0,.5);
-  --shadow-md: 0 14px 36px rgba(0,0,0,.65);
-
-  color-scheme: dark;
+  --shadow-md: 0 14px 40px rgba(0,0,0,.65);
 }
 
 /* =========================================================
@@ -92,14 +83,10 @@ html, body {
 ========================================================= */
 a {
   color: var(--brand);
-  font-weight: 500;
   text-decoration: none;
+  font-weight: 500;
 }
-
-a:hover {
-  color: var(--brand-hover);
-  text-decoration: underline;
-}
+a:hover { color: var(--brand-hover); }
 
 /* =========================================================
    TOP BAR
@@ -122,39 +109,30 @@ a:hover {
 
 .logo { height: 38px; }
 
-.title {
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.subtitle {
-  font-size: 12px;
-  color: var(--text-muted);
-}
+.title { font-size: 15px; font-weight: 700; }
+.subtitle { font-size: 12px; color: var(--text-muted); }
 
 .nav a {
-  margin-left: 22px;
-  font-size: 14px;
+  margin-left: 20px;
 }
 
 /* =========================================================
    THEME TOGGLE
 ========================================================= */
 #theme-toggle {
-  background: var(--surface-muted);
   border: 1px solid var(--border);
+  background: var(--surface-muted);
   border-radius: 999px;
   padding: 6px 10px;
   cursor: pointer;
   font-size: 14px;
 }
-
 #theme-toggle:hover {
   background: var(--surface);
 }
 
 /* =========================================================
-   PAGE LAYOUT
+   LAYOUT
 ========================================================= */
 .container {
   max-width: 1300px;
@@ -165,9 +143,7 @@ a:hover {
 .page-header h1 {
   margin: 0;
   font-size: 26px;
-  font-weight: 700;
 }
-
 .page-description {
   margin-top: 6px;
   color: var(--text-muted);
@@ -177,60 +153,55 @@ a:hover {
    CARDS
 ========================================================= */
 .card {
-  background: linear-gradient(
-    180deg,
-    var(--surface),
-    var(--surface-muted)
-  );
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 20px 24px;
   box-shadow: var(--shadow-md);
 }
 
-.card h2 {
-  margin: 0 0 10px;
-  font-size: 18px;
-}
-
 /* =========================================================
-   GRID
+   GRID SYSTEMS
 ========================================================= */
 .grid {
   display: grid;
   gap: 20px;
-  margin-top: 20px;
 }
-
 .summary-grid {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 20px;
 }
 
 /* =========================================================
-   HEALTH SUMMARY / LABEL STACK
+   HEALTH SUMMARY (FIXED LAYOUT)
 ========================================================= */
-.health-list {
+.health-grid {
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 8px 16px;
-  margin-top: 12px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
 }
 
-.health-list span {
-  font-size: 14px;
+.health-cell {
+  background: var(--surface-muted);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  text-align: center;
 }
 
 /* =========================================================
    BADGES
 ========================================================= */
 .badge {
-  display: inline-flex;
-  align-items: center;
+  display: inline-block;
   padding: 4px 10px;
   font-size: 11px;
   font-weight: 700;
   border-radius: 999px;
-  letter-spacing: .04em;
+  text-transform: uppercase;
 }
 
 .health-green { color: var(--green); background: var(--green-bg); }
@@ -239,55 +210,80 @@ a:hover {
 .health-unknown { color: var(--unknown); background: var(--unknown-bg); }
 
 /* =========================================================
-   TABLES
+   DASHBOARD TABLES (EXECUTIVE STYLE)
 ========================================================= */
+.table-wrap {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 12px;
+  font-size: 14px;
 }
 
-th {
+thead th {
   font-size: 12px;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: .04em;
+  letter-spacing: .06em;
   border-bottom: 1px solid var(--border);
-  padding-bottom: 8px;
+  padding: 10px 8px;
+  text-align: center;
 }
 
-td {
-  padding: 10px 6px;
+tbody td {
+  padding: 12px 8px;
   border-bottom: 1px solid var(--border);
+  text-align: center;
 }
 
-tr:last-child td { border-bottom: none; }
+tbody tr:hover {
+  background: var(--surface-muted);
+}
+
+/* Left-align first column only */
+table th:first-child,
+table td:first-child {
+  text-align: left;
+}
 
 /* =========================================================
-   BUTTONS
+   ACTION ROWS / BUTTONS
 ========================================================= */
-button {
+.row {
+  display: flex;
+  align-items: center;
+}
+.row.between {
+  justify-content: space-between;
+}
+.row.gap {
+  gap: 10px;
+}
+
+button,
+.btn {
   background: var(--surface-muted);
   border: 1px solid var(--border);
-  padding: 6px 14px;
   border-radius: var(--radius-sm);
+  padding: 6px 12px;
   font-weight: 500;
   cursor: pointer;
 }
-
-button:hover {
+button:hover,
+.btn:hover {
   background: var(--surface);
 }
 
 /* =========================================================
-   EMPTY / EXECUTIVE STATES
+   UTILITIES
 ========================================================= */
-.empty-state {
-  padding: 24px;
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 14px;
-}
+.muted { color: var(--text-muted); }
+.small { font-size: 12px; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.hidden { display: none; }
 
 /* =========================================================
    FOOTER
