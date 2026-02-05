@@ -1,20 +1,38 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <title>US Signal | Webex Partner Portal</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description"
+        content="US Signal Webex Partner Portal – operational visibility, proactive monitoring, and license governance for Webex Calling and Contact Center." />
+
   <link rel="stylesheet" href="/styles.css">
 </head>
+
 <body>
+
+  <!-- =========================================================
+       TOP NAV / BRANDING
+  ========================================================== -->
   <header class="topbar">
     <div class="brand">
-      <img src="/assets/ussignal-logo.jpg" class="logo" />
-      <div>
+      <img
+        src="/assets/ussignal-logo.jpg"
+        alt="US Signal"
+        class="logo"
+      />
+      <div class="brand-text">
         <div class="title">US Signal | Webex Partner Portal</div>
-        <div class="sub">Operational visibility • Proactive monitoring • License governance</div>
+        <div class="subtitle">
+          Operational visibility • Proactive monitoring • License governance
+        </div>
       </div>
     </div>
-    <nav>
+
+    <nav class="nav">
+      <a href="/">Dashboard</a>
       <a href="/customers">Customers</a>
       <a href="/licenses">Licenses</a>
       <a href="/status">Webex Status</a>
@@ -22,15 +40,134 @@
     </nav>
   </header>
 
+  <!-- =========================================================
+       MAIN CONTENT
+  ========================================================== -->
   <main class="container">
-    <h1>Dashboard</h1>
-    <div class="card">
-      <p>API quick checks:</p>
-      <ul>
-        <li><a href="/api/customers" target="_blank">/api/customers</a></li>
-        <li><a href="/api/status" target="_blank">/api/status</a></li>
+
+    <!-- PAGE TITLE -->
+    <section class="page-header">
+      <h1>Dashboard</h1>
+      <p class="page-description">
+        Centralized operational view across Webex Calling, Contact Center,
+        cloud-registered devices, and license compliance.
+      </p>
+    </section>
+
+    <!-- =====================================================
+         KPI / SUMMARY CARDS
+    ====================================================== -->
+    <section class="grid kpi-grid">
+
+      <div class="card kpi">
+        <h3>Customers</h3>
+        <div class="kpi-value" id="kpi-customers">
+          Loading…
+        </div>
+        <div class="kpi-footer">
+          <a href="/customers">View all customers →</a>
+        </div>
+      </div>
+
+      <div class="card kpi">
+        <h3>Overall Health</h3>
+        <div class="kpi-value" id="kpi-health">
+          Evaluating…
+        </div>
+        <div class="kpi-footer">
+          Aggregated customer health state
+        </div>
+      </div>
+
+      <div class="card kpi">
+        <h3>License Risk</h3>
+        <div class="kpi-value" id="kpi-licenses">
+          Checking…
+        </div>
+        <div class="kpi-footer">
+          Customers approaching license thresholds
+        </div>
+      </div>
+
+      <div class="card kpi">
+        <h3>Platform Status</h3>
+        <div class="kpi-value" id="kpi-platform">
+          Loading…
+        </div>
+        <div class="kpi-footer">
+          Webex Calling • Contact Center • Devices
+        </div>
+      </div>
+
+    </section>
+
+    <!-- =====================================================
+         STATUS SNAPSHOT
+    ====================================================== -->
+    <section class="card">
+      <h2>Webex Platform Status</h2>
+      <p class="section-description">
+        Live service status sourced from status.webex.com and filtered for
+        Calling, Contact Center, and cloud-registered devices.
+      </p>
+
+      <div id="platform-status">
+        Loading status components…
+      </div>
+
+      <div class="section-footer">
+        <a href="/status">View detailed status →</a>
+      </div>
+    </section>
+
+    <!-- =====================================================
+         QUICK LINKS / API VALIDATION
+    ====================================================== -->
+    <section class="card">
+      <h2>API Validation & Diagnostics</h2>
+      <p class="section-description">
+        These endpoints confirm connectivity to Control Hub,
+        Webex APIs, and partner integrations.
+      </p>
+
+      <ul class="api-links">
+        <li>
+          <a href="/api/customers" target="_blank">
+            /api/customers
+          </a>
+        </li>
+        <li>
+          <a href="/api/status" target="_blank">
+            /api/status
+          </a>
+        </li>
       </ul>
-    </div>
+    </section>
+
   </main>
+
+  <!-- =========================================================
+       FOOTER
+  ========================================================== -->
+  <footer class="footer">
+    <div>
+      © <span id="year"></span> US Signal
+    </div>
+    <div class="footer-sub">
+      Cisco Webex Certified Partner • Demonstration Environment
+    </div>
+  </footer>
+
+  <!-- =========================================================
+       BASIC JS BOOTSTRAP (SAFE / READ-ONLY)
+  ========================================================== -->
+  <script>
+    document.getElementById("year").textContent =
+      new Date().getFullYear();
+  </script>
+
+  <!-- App logic (we will expand later) -->
+  <script src="/app.js"></script>
+
 </body>
 </html>
