@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Customer | US Signal Webex Partner Portal</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description"
+        content="Customer deep dive: health trends, licenses, devices, and operational risk." />
+
+  <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body>
+
+  <!-- =========================================================
+       TOP NAV
+  ========================================================== -->
+  <header class="topbar">
+    <div class="brand">
+      <img src="/assets/ussignal-logo.jpg" class="logo" />
+      <div>
+        <div class="title">US Signal | Webex Partner Portal</div>
+        <div class="subtitle">Customer Operations & Health</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a href="/">Dashboard</a>
+      <a href="/customers">Customers</a>
+      <a href="/licenses">Licenses</a>
+      <a href="/status">Webex Status</a>
+      <a href="/sow">SOW</a>
+    </nav>
+  </header>
+
+  <!-- =========================================================
+       MAIN
+  ========================================================== -->
+  <main class="container">
+
+    <!-- PAGE HEADER -->
+    <section class="page-header">
+      <h1 id="customer-name">Customer</h1>
+      <p class="page-description">
+        Health posture, license risk, and operational trends.
+      </p>
+    </section>
+
+    <!-- =====================================================
+         HEALTH SUMMARY
+    ====================================================== -->
+    <section class="grid summary-grid">
+      <div class="card summary">
+        <div class="summary-label">Overall Health</div>
+        <div id="health-overall" class="summary-value">—</div>
+      </div>
+
+      <div class="card summary">
+        <div class="summary-label">Calling</div>
+        <div id="health-calling" class="summary-value">—</div>
+      </div>
+
+      <div class="card summary">
+        <div class="summary-label">Messaging</div>
+        <div id="health-messaging" class="summary-value">—</div>
+      </div>
+
+      <div class="card summary">
+        <div class="summary-label">Meetings</div>
+        <div id="health-meetings" class="summary-value">—</div>
+      </div>
+
+      <div class="card summary">
+        <div class="summary-label">Devices</div>
+        <div id="health-devices" class="summary-value">—</div>
+      </div>
+    </section>
+
+    <!-- =====================================================
+         HEALTH TREND
+    ====================================================== -->
+    <section class="card">
+      <h2>Health Trend (Last 30 Days)</h2>
+      <div id="health-trend" class="trend-row">
+        <span class="loading">Loading history…</span>
+      </div>
+    </section>
+
+    <!-- =====================================================
+         LICENSE POSTURE
+    ====================================================== -->
+    <section class="card">
+      <h2>License Posture</h2>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>SKU</th>
+            <th>Total</th>
+            <th>Used</th>
+            <th>Available</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="licenses-body">
+          <tr>
+            <td colspan="5" class="loading">Loading licenses…</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- =====================================================
+         OPERATIONAL NOTES / NEXT ACTIONS
+    ====================================================== -->
+    <section class="grid two-col">
+      <div class="card">
+        <h2>Operational Risk</h2>
+        <ul id="risk-list">
+          <li class="muted">No risks detected.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2>Recommended Actions</h2>
+        <ul id="action-list">
+          <li class="muted">No actions required.</li>
+        </ul>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- =========================================================
+       FOOTER
+  ========================================================== -->
+  <footer class="footer">
+    <div>
+      © <span id="year"></span> US Signal
+    </div>
+    <div class="footer-sub">
+      Cisco Webex Partner • Internal Use Only
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent =
+      new Date().getFullYear();
+  </script>
+
+  <!-- =========================================================
+       PAGE LOGIC
+  ========================================================== -->
+  <script>
+    const key = location.pathname.split("/").pop();
+
+    const el = id => document.getElementById(id);
+
+    async function loadHealth() {
+      const res = await fetch(`/api/customer/${key}/health`);
+      const data = await res.json();
+
+      el("customer-name").textContent = data.customer.name;
+
+      const h = data.health;
+      setHealth("overall", h.overall);
+      setHealth("calling", h.calling);
+      setHealth("messaging", h.messaging);
+      setHealth("meetings", h.meetings);
+      setHealth("devices", h.devices);
+
+      buildRiskAndActions(h);
+    }
+
+    function setHealth(type, value) {
+      const elx = el(`health-${type}`);
+      elx.textContent = value.toUpperCase();
+      elx.className = `summary-value health-${value}`;
+    }
+
+    async function loadHistory() {
+      const res = await fetch(`/api/customer/${key}/health-history`);
+      const data = await res.json();
+
+      const row = el("health-trend");
+      row.innerHTML = "";
+
+      if (!data.history.length) {
+        row.textContent = "No history available.";
+        return;
+      }
+
+      for (const d of data.history) {
+        row.insertAdjacentHTML("beforeend", `
+          <div class="trend-dot health-${d.overall}"
+               title="${d.date} – ${d.overall}">
+          </div>
+        `);
+      }
+    }
+
+    async function loadLicenses() {
+      const res = await fetch(`/api/customer/${key}/licenses`);
+      const data = await res.json();
+
+      const body = el("licenses-body");
+      body.innerHTML = "";
+
+      for (const l of data.licenses) {
+        body.insertAdjacentHTML("beforeend", `
+          <tr>
+            <td>${l.sku}</td>
+            <td class="mono">${l.total}</td>
+            <td class="mono">${l.used}</td>
+            <td class="mono">${l.available}</td>
+            <td>
+              <span class="badge ${l.deficient ? "health-red" : "health-green"}">
+                ${l.deficient ? "DEFICIENT" : "OK"}
+              </span>
+            </td>
+          </tr>
+        `);
+      }
+    }
+
+    function buildRiskAndActions(h) {
+      const risks = [];
+      const actions = [];
+
+      if (h.overall === "red") {
+        risks.push("Customer health is critical.");
+        actions.push("Escalate to account team immediately.");
+      }
+
+      if (h.devices === "red") {
+        risks.push("High percentage of offline devices.");
+        actions.push("Review device inventory and connectivity.");
+      }
+
+      if (!risks.length) {
+        el("risk-list").innerHTML =
+          "<li class='muted'>No risks detected.</li>";
+      } else {
+        el("risk-list").innerHTML =
+          risks.map(r => `<li>${r}</li>`).join("");
+      }
+
+      if (!actions.length) {
+        el("action-list").innerHTML =
+          "<li class='muted'>No actions required.</li>";
+      } else {
+        el("action-list").innerHTML =
+          actions.map(a => `<li>${a}</li>`).join("");
+      }
+    }
+
+    Promise.all([
+      loadHealth(),
+      loadHistory(),
+      loadLicenses()
+    ]);
+  </script>
+
+</body>
+</html>
