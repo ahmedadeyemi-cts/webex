@@ -77,7 +77,20 @@ async function apiFetch(path, {
 
       if (!res.ok) {
         const text = await res.text();
-        throw new Error(`API ${path} failed (${res.status}): ${text}`);
+        const err = new Error(`API ${path} failed (${res.status})`);
+        err.status = res.status;
+        err.body = text.slice(0, 300);
+        throw err;
+      }
+
+      const contentType = res.headers.get("content-type") || "";
+
+      if (!contentType.includes("application/json")) {
+        const text = await res.text();
+        const err = new Error(`Non-JSON response from ${path}`);
+        err.status = res.status;
+        err.body = text.slice(0, 300);
+        throw err;
       }
 
       const data = await res.json();
