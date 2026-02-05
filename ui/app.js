@@ -331,6 +331,35 @@ async function initDashboardPage() {
 }
 
 /* =========================================================
+   Platform KPI
+========================================================= */
+const elPlatform = qs("#kpi-platform");
+
+if (elPlatform) {
+  elPlatform.textContent = "Checking…";
+
+  try {
+    const status = await apiFetch("/status", {
+      cacheKey: "platform-status",
+      ttl: 60 * 1000
+    });
+
+    const components = status.components || [];
+
+    const degraded = components.some(c =>
+      c.status && c.status !== "operational"
+    );
+
+    elPlatform.innerHTML = degraded
+      ? healthBadge("red")
+      : healthBadge("green");
+
+  } catch (err) {
+    elPlatform.innerHTML = `<span class="health-unknown">unknown</span>`;
+  }
+}
+
+/* =========================================================
    Customer page (deep dive)
 ========================================================= */
 async function initCustomerPage() {
