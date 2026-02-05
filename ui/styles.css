@@ -1,9 +1,300 @@
-body{margin:0;font-family:Arial;background:#f6f8fb;color:#0b1a33}
-.topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;background:#fff;border-bottom:1px solid #e6eaf2}
-.brand{display:flex;gap:12px;align-items:center}
-.logo{height:44px}
-.title{font-weight:700}
-.sub{font-size:12px;color:#5b6b86}
-nav a{margin-left:14px;text-decoration:none;color:#0b1a33;font-weight:600}
-.container{max-width:1100px;margin:0 auto;padding:18px}
-.card{background:#fff;border:1px solid #e6eaf2;border-radius:10px;padding:14px;margin:12px 0}
+/* =========================================================
+   US SIGNAL | WEBEX PARTNER PORTAL
+   Enterprise UI Styles
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   CSS VARIABLES — LIGHT MODE (DEFAULT)
+--------------------------------------------------------- */
+:root {
+  --bg: #f7f9fc;
+  --bg-card: #ffffff;
+  --bg-muted: #eef2f7;
+
+  --text: #0f172a;
+  --text-muted: #64748b;
+
+  --brand: #003a8f;     /* US Signal blue */
+  --brand-dark: #002b6f;
+
+  --border: #dbe1ea;
+
+  --green: #15803d;
+  --yellow: #b45309;
+  --red: #b91c1c;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+  --shadow-md: 0 6px 18px rgba(0,0,0,.08);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+}
+
+/* ---------------------------------------------------------
+   DARK MODE
+--------------------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1220;
+    --bg-card: #121a2c;
+    --bg-muted: #1c2541;
+
+    --text: #e5e7eb;
+    --text-muted: #9ca3af;
+
+    --brand: #4f8cff;
+    --brand-dark: #3b6fd8;
+
+    --border: #1f2a44;
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+    --shadow-md: 0 8px 24px rgba(0,0,0,.6);
+  }
+}
+
+/* ---------------------------------------------------------
+   GLOBAL RESET
+--------------------------------------------------------- */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, sans-serif;
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------
+   LINKS
+--------------------------------------------------------- */
+a {
+  color: var(--brand);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* ---------------------------------------------------------
+   TOP BAR
+--------------------------------------------------------- */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 22px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.brand {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.logo {
+  height: 42px;
+}
+
+.title {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.nav a {
+  margin-left: 20px;
+  font-weight: 500;
+}
+
+/* ---------------------------------------------------------
+   LAYOUT
+--------------------------------------------------------- */
+.container {
+  max-width: 1300px;
+  margin: 28px auto;
+  padding: 0 22px;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 26px;
+}
+
+.page-description {
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* ---------------------------------------------------------
+   GRID SYSTEM
+--------------------------------------------------------- */
+.grid {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.two-col {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+/* ---------------------------------------------------------
+   CARDS
+--------------------------------------------------------- */
+.card {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border);
+}
+
+.card h2 {
+  margin-top: 0;
+  font-size: 18px;
+}
+
+/* ---------------------------------------------------------
+   SUMMARY BLOCKS
+--------------------------------------------------------- */
+.summary {
+  text-align: center;
+}
+
+.summary-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.summary-value {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* ---------------------------------------------------------
+   HEALTH STATES
+--------------------------------------------------------- */
+.health-green { color: var(--green); }
+.health-yellow { color: var(--yellow); }
+.health-red { color: var(--red); }
+.health-unknown { color: var(--text-muted); }
+
+.badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.badge.health-green {
+  background: rgba(21,128,61,.15);
+}
+
+.badge.health-yellow {
+  background: rgba(180,83,9,.18);
+}
+
+.badge.health-red {
+  background: rgba(185,28,28,.18);
+}
+
+/* ---------------------------------------------------------
+   TREND DOTS
+--------------------------------------------------------- */
+.trend-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.trend-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+
+.trend-dot.health-green { background: var(--green); }
+.trend-dot.health-yellow { background: var(--yellow); }
+.trend-dot.health-red { background: var(--red); }
+.trend-dot.health-unknown { background: var(--border); }
+
+/* ---------------------------------------------------------
+   TABLES
+--------------------------------------------------------- */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+
+.data-table th {
+  text-align: left;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+
+.data-table td {
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.data-table tr:last-child td {
+  border-bottom: none;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* ---------------------------------------------------------
+   LISTS
+--------------------------------------------------------- */
+ul {
+  padding-left: 18px;
+}
+
+li {
+  margin-bottom: 6px;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+/* ---------------------------------------------------------
+   FOOTER
+--------------------------------------------------------- */
+.footer {
+  margin-top: 60px;
+  padding: 22px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.footer-sub {
+  margin-top: 4px;
+  font-size: 11px;
+}
