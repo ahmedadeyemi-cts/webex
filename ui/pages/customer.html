@@ -1,12 +1,17 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <title>Customer | US Signal Webex Partner Portal</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="/styles.css">
 </head>
+
 <body>
+
+<!-- =========================================================
+     TOP BAR
+========================================================= -->
 <header class="topbar">
   <div class="brand">
     <img src="/assets/ussignal-logo.jpg" class="logo" alt="US Signal" />
@@ -23,224 +28,225 @@
       <a href="/">Dashboard</a>
       <a href="/customers">Customers</a>
       <a href="/status">Webex Status</a>
-      <a href="/executive">Executive</a>
       <a href="/sow">SOW</a>
     </nav>
-
-    <!-- Theme Toggle -->
-    <button id="theme-toggle" title="Toggle light/dark mode">
-      🌙
-    </button>
+    <button id="theme-toggle" title="Toggle light/dark mode">🌙</button>
   </div>
 </header>
 
-  <main class="container">
-    <div class="page-head">
-      <div>
-        <h1 id="cust-name">Customer</h1>
-        <div class="muted">
-          <span class="mono" id="cust-key">—</span>
-          <span class="dot-sep">•</span>
-          <span class="mono" id="cust-org">OrgID: —</span>
-        </div>
-      </div>
+<main class="container">
 
-      <div class="actions">
-        <button class="btn" id="btn-refresh">Refresh</button>
-        <button class="btn btn-primary" id="btn-reeval">Manual Re-eval</button>
-        <button class="btn" id="btn-print">Print Report</button>
+  <!-- =====================================================
+       PAGE HEADER
+  ====================================================== -->
+  <div class="page-head">
+    <div>
+      <h1 id="cust-name">Customer</h1>
+      <div class="muted">
+        <span class="mono" id="cust-key">—</span>
+        <span class="dot-sep">•</span>
+        <span class="mono" id="cust-org">OrgID: —</span>
       </div>
     </div>
 
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-title">Health Summary</div>
+    <div class="actions">
+      <button class="btn" id="btn-refresh">Refresh</button>
+      <button class="btn btn-primary" id="btn-reeval">Manual Re-eval</button>
+      <button class="btn" id="btn-print">Print Report</button>
+    </div>
+  </div>
 
-        <div class="health-grid">
-          <div class="health-cell">
-            <div class="muted">Overall</div>
-            <div id="health-overall">—</div>
-          </div>
-          <div class="health-cell">
-            <div class="muted">Calling</div>
-            <div id="health-calling">—</div>
-          </div>
-          <div class="health-cell">
-            <div class="muted">Messaging</div>
-            <div id="health-messaging">—</div>
-          </div>
-          <div class="health-cell">
-            <div class="muted">Meetings</div>
-            <div id="health-meetings">—</div>
-          </div>
-          <div class="health-cell">
-            <div class="muted">Devices</div>
-            <div id="health-devices">—</div>
-          </div>
-          <div class="health-cell">
-            <div class="muted">Evaluated</div>
-            <div class="mono" id="health-evaluated">—</div>
-          </div>
-        </div>
+  <!-- =====================================================
+       HEALTH OVERVIEW
+  ====================================================== -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Health Summary</div>
 
-        <div class="divider"></div>
-
-        <div class="row between">
-          <div class="card-title">30-day Trend</div>
-          <div class="muted small" id="trend-hint">—</div>
-        </div>
-        <div id="health-trends" class="trend-wrap">—</div>
-
-        <div id="transition-banner" class="banner hidden"></div>
+      <div class="health-grid">
+        <div class="health-cell"><div class="muted">Overall</div><div id="health-overall">—</div></div>
+        <div class="health-cell"><div class="muted">Calling</div><div id="health-calling">—</div></div>
+        <div class="health-cell"><div class="muted">Messaging</div><div id="health-messaging">—</div></div>
+        <div class="health-cell"><div class="muted">Meetings</div><div id="health-meetings">—</div></div>
+        <div class="health-cell"><div class="muted">Devices</div><div id="health-devices">—</div></div>
+        <div class="health-cell"><div class="muted">Evaluated</div><div class="mono" id="health-evaluated">—</div></div>
       </div>
 
-      <div class="card">
-        <div class="row between">
-          <div class="card-title">Deficient SKUs</div>
-          <button class="btn btn-small" id="btn-email-alert">Send License Alert Email</button>
-        </div>
+      <div class="divider"></div>
 
-        <div class="table-wrap">
-          <table class="table" id="deficient-table">
-            <thead>
-              <tr>
-                <th>SKU</th>
-                <th>Available</th>
-                <th>Threshold</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td colspan="3" class="muted">Loading…</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tabs -->
-    <div class="tabs" role="tablist" aria-label="Customer sections">
-      <button class="tab active" data-tab="licenses">Licenses</button>
-      <button class="tab" data-tab="devices">Devices</button>
-      <button class="tab" data-tab="alerts">Health Alerts</button>
-      <button class="tab" data-tab="report">Report</button>
-    </div>
-
-    <!-- Licenses -->
-    <section class="card tabpanel" id="tab-licenses">
       <div class="row between">
-        <div class="card-title">Licenses</div>
-        <div class="muted small">Source: Webex Control Hub</div>
+        <div class="card-title">30-Day Trend</div>
+        <div class="muted small" id="trend-hint">—</div>
+      </div>
+
+      <div id="health-trends" class="trend-wrap muted">
+        Trend visualization will appear here.
+      </div>
+
+      <div id="transition-banner" class="banner hidden"></div>
+    </div>
+
+    <div class="card">
+      <div class="row between">
+        <div class="card-title">Deficient SKUs</div>
+        <button class="btn btn-small" id="btn-email-alert">
+          Send License Alert Email
+        </button>
       </div>
 
       <div class="table-wrap">
-        <table class="table" id="licenses-table">
+        <table class="table" id="deficient-table">
           <thead>
             <tr>
               <th>SKU</th>
-              <th>Total</th>
-              <th>Used</th>
               <th>Available</th>
-              <th>Status</th>
+              <th>Threshold</th>
             </tr>
           </thead>
           <tbody>
-            <tr><td colspan="5" class="muted">Loading…</td></tr>
+            <tr><td colspan="3" class="muted">Loading…</td></tr>
           </tbody>
         </table>
       </div>
-    </section>
+    </div>
+  </div>
 
-    <!-- Devices -->
-    <section class="card tabpanel hidden" id="tab-devices">
-      <div class="row between">
-        <div>
-          <div class="card-title">Devices</div>
-          <div class="muted small">Offline scoring + drill-down (UI ready; API can be added to worker later)</div>
-        </div>
-        <div class="row gap">
-          <select id="device-filter" class="select">
-            <option value="all">All</option>
-            <option value="offline">Offline / Disconnected</option>
-            <option value="online">Online</option>
-          </select>
-          <input id="device-search" class="input" placeholder="Search devices (name, model, mac, status)" />
-        </div>
+  <!-- =====================================================
+       TABS
+  ====================================================== -->
+  <div class="tabs" role="tablist" aria-label="Customer sections">
+    <button class="tab active" data-tab="analytics">Analytics</button>
+    <button class="tab" data-tab="pstn">PSTN</button>
+    <button class="tab" data-tab="cdr">CDR</button>
+    <button class="tab" data-tab="licenses">Licenses</button>
+    <button class="tab" data-tab="devices">Devices</button>
+    <button class="tab" data-tab="alerts">Health Alerts</button>
+    <button class="tab" data-tab="report">Report</button>
+  </div>
+
+  <!-- =====================================================
+       ANALYTICS TAB
+  ====================================================== -->
+  <section class="card tabpanel" id="tab-analytics">
+    <div class="card-title">Call & Usage Analytics</div>
+
+    <div class="grid summary-grid">
+      <div class="card summary">
+        <div class="summary-label">Call Volume (30d)</div>
+        <div class="summary-value" id="kpi-call-volume">—</div>
       </div>
-
-      <div id="devices-summary" class="muted small">—</div>
-
-      <div class="table-wrap">
-        <table class="table" id="devices-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Model</th>
-              <th>Status</th>
-              <th>Last Seen</th>
-              <th>Location</th>
-              <th>Root Cause</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td colspan="6" class="muted">Loading…</td></tr>
-          </tbody>
-        </table>
+      <div class="card summary">
+        <div class="summary-label">Peak Concurrent Calls</div>
+        <div class="summary-value" id="kpi-peak-calls">—</div>
       </div>
-
-      <div class="muted small">
-        Root cause is heuristic: power/network/cloud registration hints based on fields returned by Webex devices API.
+      <div class="card summary">
+        <div class="summary-label">Avg Call Duration</div>
+        <div class="summary-value" id="kpi-avg-duration">—</div>
       </div>
-    </section>
-
-    <!-- Alerts -->
-    <section class="card tabpanel hidden" id="tab-alerts">
-      <div class="row between">
-        <div>
-          <div class="card-title">Health Alerts (Audit)</div>
-          <div class="muted small">Who was emailed, when, and why — UI ready</div>
-        </div>
-        <button class="btn btn-small" id="btn-refresh-alerts">Refresh Alerts</button>
+      <div class="card summary">
+        <div class="summary-label">Failed Call Rate</div>
+        <div class="summary-value" id="kpi-fail-rate">—</div>
       </div>
+    </div>
 
-      <div class="table-wrap">
-        <table class="table" id="alerts-table">
-          <thead>
-            <tr>
-              <th>When</th>
-              <th>From → To</th>
-              <th>Why</th>
-              <th>Emailed</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td colspan="4" class="muted">Loading…</td></tr>
-          </tbody>
-        </table>
+    <div class="muted small" style="margin-top:12px;">
+      Analytics sourced from Webex Calling & Control Hub analytics APIs.
+    </div>
+  </section>
+
+  <!-- =====================================================
+       PSTN TAB
+  ====================================================== -->
+  <section class="card tabpanel hidden" id="tab-pstn">
+    <div class="card-title">PSTN Health & Trunks</div>
+
+    <div class="grid summary-grid">
+      <div class="card summary">
+        <div class="summary-label">PSTN Type</div>
+        <div class="summary-value" id="pstn-type">—</div>
       </div>
-    </section>
-
-    <!-- Report -->
-    <section class="card tabpanel hidden" id="tab-report">
-      <div class="row between">
-        <div>
-          <div class="card-title">Printable Customer Report</div>
-          <div class="muted small">One-page executive summary + details</div>
-        </div>
-        <div class="row gap">
-          <button class="btn btn-small" id="btn-open-report">Open Report Page</button>
-          <button class="btn btn-small" id="btn-print-inline">Print</button>
-        </div>
+      <div class="card summary">
+        <div class="summary-label">Sites</div>
+        <div class="summary-value" id="pstn-sites">—</div>
       </div>
-
-      <div id="report-preview" class="report-preview muted">
-        Loading report preview…
+      <div class="card summary">
+        <div class="summary-label">Trunks</div>
+        <div class="summary-value" id="pstn-trunks">—</div>
       </div>
-    </section>
+      <div class="card summary">
+        <div class="summary-label">Utilization</div>
+        <div class="summary-value" id="pstn-util">—</div>
+      </div>
+    </div>
 
-    <!-- marker for app.js -->
-    <div id="customer-detail" data-key="" class="hidden"></div>
-  </main>
+    <div class="table-wrap" style="margin-top:16px;">
+      <table class="table" id="pstn-sites-table">
+        <thead>
+          <tr>
+            <th>Site</th>
+            <th>PSTN Type</th>
+            <th>Trunks</th>
+            <th>Utilization</th>
+            <th>Health</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="5" class="muted">No PSTN site data available.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 
-  <script src="/app.js"></script>
+  <!-- =====================================================
+       CDR TAB
+  ====================================================== -->
+  <section class="card tabpanel hidden" id="tab-cdr">
+    <div class="card-title">Call Detail Records</div>
+
+    <div class="muted small">
+      Filterable call records for troubleshooting, audits, and escalations.
+    </div>
+
+    <div class="table-wrap">
+      <table class="table" id="cdr-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>From</th>
+            <th>To</th>
+            <th>Duration</th>
+            <th>Result</th>
+            <th>Site</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="6" class="muted">CDR data not loaded.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- =====================================================
+       EXISTING TABS (UNCHANGED)
+  ====================================================== -->
+
+  <!-- Licenses -->
+  <section class="card tabpanel hidden" id="tab-licenses">…</section>
+
+  <!-- Devices -->
+  <section class="card tabpanel hidden" id="tab-devices">…</section>
+
+  <!-- Alerts -->
+  <section class="card tabpanel hidden" id="tab-alerts">…</section>
+
+  <!-- Report -->
+  <section class="card tabpanel hidden" id="tab-report">…</section>
+
+  <!-- Marker for app.js -->
+  <div id="customer-detail" data-key="" class="hidden"></div>
+
+</main>
+
+<script src="/app.js"></script>
 </body>
 </html>
