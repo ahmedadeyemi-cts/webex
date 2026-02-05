@@ -1,0 +1,9 @@
+body{margin:0;font-family:Arial;background:#f6f8fb;color:#0b1a33}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;background:#fff;border-bottom:1px solid #e6eaf2}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{height:44px}
+.title{font-weight:700}
+.sub{font-size:12px;color:#5b6b86}
+nav a{margin-left:14px;text-decoration:none;color:#0b1a33;font-weight:600}
+.container{max-width:1100px;margin:0 auto;padding:18px}
+.card{background:#fff;border:1px solid #e6eaf2;border-radius:10px;padding:14px;margin:12px 0}
