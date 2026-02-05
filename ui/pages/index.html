@@ -16,25 +16,25 @@
   <!-- =========================================================
        TOP NAV / BRANDING
   ========================================================== -->
-  <header class="topbar">
-    
-    <div class="brand">
-      <img
-        src="/assets/ussignal-logo.jpg"
-        alt="US Signal"
-        class="logo"
-      />
-      <div class="brand-text">
-        <div class="title">US Signal | Webex Partner Portal</div>
-        <div class="subtitle">
-          Operational visibility • Proactive monitoring • License governance
-        </div>
-        <button id="theme-toggle" title="Toggle light/dark mode">
-                🌙
-            </button>
+ <header class="topbar">
+
+  <!-- Brand / Logo -->
+  <div class="brand">
+    <img
+      src="/assets/ussignal-logo.jpg"
+      alt="US Signal"
+      class="logo"
+    />
+    <div>
+      <div class="title">US Signal | Webex Partner Portal</div>
+      <div class="subtitle">
+        Operational visibility • Proactive monitoring • License governance
       </div>
     </div>
+  </div>
 
+  <!-- Nav + Theme Toggle -->
+  <div class="topbar-actions">
     <nav class="nav">
       <a href="/">Dashboard</a>
       <a href="/customers">Customers</a>
@@ -42,7 +42,18 @@
       <a href="/status">Webex Status</a>
       <a href="/sow">SOW</a>
     </nav>
-  </header>
+
+    <button
+      id="theme-toggle"
+      title="Toggle light / dark mode"
+      aria-label="Toggle theme"
+    >
+      🌙
+    </button>
+  </div>
+
+</header>
+
 
   <!-- =========================================================
        MAIN CONTENT
