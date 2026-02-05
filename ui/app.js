@@ -255,18 +255,55 @@ async function initCustomersPage() {
 ========================================================= */
 async function initDashboardPage() {
   const elCustomers = qs("#kpi-customers");
-  if (!elCustomers) return;
+  const elHealth = qs("#kpi-health");
+
+  if (!elCustomers && !elHealth) return;
 
   try {
     const data = await loadCustomers();
-    const count = Array.isArray(data.customers)
-      ? data.customers.length
-      : 0;
+    const customers = Array.isArray(data.customers)
+      ? data.customers
+      : [];
 
-    elCustomers.textContent = count.toLocaleString();
+    // ----------------------------
+    // Customers KPI
+    // ----------------------------
+    if (elCustomers) {
+      elCustomers.textContent = customers.length.toLocaleString();
+    }
+
+    // ----------------------------
+    // Overall Health KPI
+    // ----------------------------
+    if (elHealth) {
+      elHealth.textContent = "Evaluating…";
+
+      let worst = "green";
+
+      for (const c of customers) {
+        const health = await loadCustomerHealth(c.key);
+        const h = health.health || health;
+        const overall = health.overall || h.overall || "unknown";
+
+        if (healthOrder(overall) > healthOrder(worst)) {
+          worst = overall;
+        }
+
+        // short-circuit: cannot get worse than red
+        if (worst === "red") break;
+      }
+
+      elHealth.innerHTML = healthBadge(worst);
+    }
+
   } catch (err) {
-    elCustomers.innerHTML = `<span class="health-red">Error</span>`;
-    console.error("Failed to load Customers KPI:", err);
+    if (elCustomers) {
+      elCustomers.innerHTML = `<span class="health-red">Error</span>`;
+    }
+    if (elHealth) {
+      elHealth.innerHTML = `<span class="health-red">Error</span>`;
+    }
+    console.error("Failed to load Dashboard KPIs:", err);
   }
 }
 
