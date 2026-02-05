@@ -3,7 +3,7 @@
     {
       "key": "demo",
       "name": "Demo Customer",
-      "orgId": "PASTE_ORGID_HERE",
+      "orgId": "9ed5ba9f-7d18-4da4-873f-81b0b8d150f8",
       "licenseThresholdPct": 10,
       "notifyEmails": ["internal@ussignal.com"]
     }
