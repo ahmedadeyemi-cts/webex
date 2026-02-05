@@ -1,38 +1,25 @@
 /* =========================================================
-   US SIGNAL | WEBEX PARTNER PORTAL
-   Shared UI Runtime (app.js)
-   ========================================================= */
-
+   US SIGNAL | WEBEX PARTNER PORTAL — app.js
+   Shared fetch, caching, debounce, error handling, UI renderers
+========================================================= */
 "use strict";
 
-/* =========================================================
-   CONFIG
-========================================================= */
 const API_BASE = "/api";
+const cache = new Map();
+const inflight = new Map();
 
 const CACHE_TTL = {
   customers: 60 * 1000,
   health: 60 * 1000,
   history: 5 * 60 * 1000,
-  licenses: 2 * 60 * 1000
+  licenses: 2 * 60 * 1000,
+  devices: 2 * 60 * 1000,
+  alerts: 60 * 1000,
+  exec: 60 * 1000,
+  report: 2 * 60 * 1000
 };
 
-/* =========================================================
-   SIMPLE IN-MEMORY CACHE
-========================================================= */
-const cache = new Map();
-const inflight = new Map();
-
-/* =========================================================
-   UTILITIES
-========================================================= */
-function now() {
-  return Date.now();
-}
-
-function sleep(ms) {
-  return new Promise(r => setTimeout(r, ms));
-}
+function now() { return Date.now(); }
 
 function debounce(fn, delay = 300) {
   let t;
@@ -42,13 +29,8 @@ function debounce(fn, delay = 300) {
   };
 }
 
-function qs(sel, root = document) {
-  return root.querySelector(sel);
-}
-
-function qsa(sel, root = document) {
-  return Array.from(root.querySelectorAll(sel));
-}
+function qs(sel, root = document) { return root.querySelector(sel); }
+function qsa(sel, root = document) { return Array.from(root.querySelectorAll(sel)); }
 
 function escapeHtml(s) {
   return String(s || "")
@@ -59,8 +41,18 @@ function escapeHtml(s) {
     .replaceAll("'", "&#039;");
 }
 
+function isNotFoundError(err) {
+  return /failed \(404\)/i.test(String(err?.message || err));
+}
+
+function clearCachePrefix(prefix) {
+  for (const k of cache.keys()) {
+    if (k.startsWith(prefix)) cache.delete(k);
+  }
+}
+
 /* =========================================================
-   CENTRAL FETCH WRAPPER
+   Central API fetch + caching + in-flight de-dupe
 ========================================================= */
 async function apiFetch(path, {
   cacheKey = path,
@@ -70,25 +62,16 @@ async function apiFetch(path, {
   headers = {}
 } = {}) {
 
-  // Cache hit
   const cached = cache.get(cacheKey);
-  if (cached && cached.expires > now()) {
-    return cached.value;
-  }
+  if (cached && cached.expires > now()) return cached.value;
 
-  // Deduplicate in-flight requests
-  if (inflight.has(cacheKey)) {
-    return inflight.get(cacheKey);
-  }
+  if (inflight.has(cacheKey)) return inflight.get(cacheKey);
 
   const req = (async () => {
     try {
       const res = await fetch(`${API_BASE}${path}`, {
         method,
-        headers: {
-          "Content-Type": "application/json",
-          ...headers
-        },
+        headers: { "Content-Type": "application/json", ...headers },
         body: body ? JSON.stringify(body) : null
       });
 
@@ -100,14 +83,10 @@ async function apiFetch(path, {
       const data = await res.json();
 
       if (ttl > 0) {
-        cache.set(cacheKey, {
-          value: data,
-          expires: now() + ttl
-        });
+        cache.set(cacheKey, { value: data, expires: now() + ttl });
       }
 
       return data;
-
     } finally {
       inflight.delete(cacheKey);
     }
@@ -118,7 +97,7 @@ async function apiFetch(path, {
 }
 
 /* =========================================================
-   HEALTH HELPERS
+   Health UI helpers
 ========================================================= */
 function healthClass(h) {
   if (!h) return "health-unknown";
@@ -126,64 +105,120 @@ function healthClass(h) {
 }
 
 function healthBadge(h) {
-  return `<span class="badge ${healthClass(h)}">${h}</span>`;
+  return `<span class="badge ${healthClass(h)}">${escapeHtml(h)}</span>`;
 }
 
 function trendDots(history = []) {
   if (!history.length) return `<span class="muted">—</span>`;
-
   return `
     <div class="trend-row">
       ${history.map(h => `
         <span class="trend-dot ${healthClass(h.overall)}"
-              title="${h.date}: ${h.overall}">
-        </span>
+              title="${escapeHtml(h.date)}: ${escapeHtml(h.overall)}"></span>
       `).join("")}
     </div>
   `;
 }
 
+function healthOrder(h) {
+  const o = { red: 3, yellow: 2, green: 1, unknown: 0 };
+  return o[h] ?? 0;
+}
+
 /* =========================================================
-   DATA LOADERS
+   Loaders (existing + new)
 ========================================================= */
-async function loadCustomers() {
-  return apiFetch("/customers", {
-    cacheKey: "customers",
-    ttl: CACHE_TTL.customers
-  });
-}
+const loadCustomers = () => apiFetch("/customers", { cacheKey: "customers", ttl: CACHE_TTL.customers });
 
-async function loadCustomerHealth(key) {
-  return apiFetch(`/customer/${key}/health`, {
-    cacheKey: `health:${key}`,
-    ttl: CACHE_TTL.health
-  });
-}
+const loadCustomerHealth = (key) =>
+  apiFetch(`/customer/${encodeURIComponent(key)}/health`, { cacheKey: `health:${key}`, ttl: CACHE_TTL.health });
 
-async function loadHealthHistory(key) {
-  return apiFetch(`/customer/${key}/health-history`, {
-    cacheKey: `history:${key}`,
-    ttl: CACHE_TTL.history
-  });
-}
+const loadHealthHistory = (key) =>
+  apiFetch(`/customer/${encodeURIComponent(key)}/health-history`, { cacheKey: `history:${key}`, ttl: CACHE_TTL.history });
 
-async function loadLicenses(key) {
-  return apiFetch(`/customer/${key}/licenses`, {
-    cacheKey: `licenses:${key}`,
-    ttl: CACHE_TTL.licenses
-  });
+const loadLicenses = (key) =>
+  apiFetch(`/customer/${encodeURIComponent(key)}/licenses`, { cacheKey: `licenses:${key}`, ttl: CACHE_TTL.licenses });
+
+/**
+ * NEW: devices endpoint (add to worker later)
+ * Expected shape:
+ * { ok:true, devices:[ {name, model, connectionStatus, lastSeen, location, mac, ip, ...} ] }
+ */
+const loadDevices = (key) =>
+  apiFetch(`/customer/${encodeURIComponent(key)}/devices`, { cacheKey: `devices:${key}`, ttl: CACHE_TTL.devices });
+
+/**
+ * NEW: health alerts endpoint (add to worker later)
+ * Expected shape:
+ * { ok:true, alerts:[ {occurredAt, from, to, reason, emailedTo:[...]} ] }
+ */
+const loadAlerts = (key) =>
+  apiFetch(`/customer/${encodeURIComponent(key)}/alerts`, { cacheKey: `alerts:${key}`, ttl: CACHE_TTL.alerts });
+
+/**
+ * Manual re-eval
+ * Preferred: POST /api/customer/:key/health/reeval
+ * Fallback: GET /api/customer/:key/health?force=1 (worker can ignore caches)
+ */
+async function triggerReeval(key) {
+  try {
+    return await apiFetch(`/customer/${encodeURIComponent(key)}/health/reeval`, {
+      method: "POST",
+      ttl: 0,
+      cacheKey: `reeval:${key}:${now()}`
+    });
+  } catch (err) {
+    // fallback to GET with cache-buster
+    return apiFetch(`/customer/${encodeURIComponent(key)}/health?force=1&t=${now()}`, {
+      ttl: 0,
+      cacheKey: `health_force:${key}:${now()}`
+    });
+  }
 }
 
 /* =========================================================
-   PAGE INITIALIZERS
+   Routing helpers for UI pages
+========================================================= */
+function getCustomerKeyFromPath() {
+  // supports /customer/<key> routes (worker maps to customer.html)
+  const parts = location.pathname.split("/").filter(Boolean);
+  const idx = parts.indexOf("customer");
+  return idx >= 0 ? (parts[idx + 1] || "") : "";
+}
+
+function setTabs() {
+  const tabs = qsa(".tab");
+  const panels = {
+    licenses: qs("#tab-licenses"),
+    devices: qs("#tab-devices"),
+    alerts: qs("#tab-alerts"),
+    report: qs("#tab-report")
+  };
+
+  function activate(name) {
+    tabs.forEach(t => t.classList.toggle("active", t.dataset.tab === name));
+    Object.entries(panels).forEach(([k, el]) => {
+      if (!el) return;
+      el.classList.toggle("hidden", k !== name);
+    });
+  }
+
+  tabs.forEach(btn => btn.addEventListener("click", () => activate(btn.dataset.tab)));
+  activate("licenses");
+}
+
+/* =========================================================
+   Page init
 ========================================================= */
 document.addEventListener("DOMContentLoaded", () => {
   if (qs("#customers-table")) initCustomersPage();
-  if (qs("#customer-detail")) initCustomerPage();
+  if (qs("#customer-detail") || qs("#tab-licenses")) initCustomerPage();
+  if (qs("#exec-table")) initExecutivePage();
+  if (qs("#customer-report")) initReportPage();
 });
 
 /* =========================================================
-   CUSTOMERS PAGE
+   Customers page (simple)
 ========================================================= */
 async function initCustomersPage() {
   const tbody = qs("#customers-table tbody");
@@ -199,76 +234,196 @@ async function initCustomersPage() {
 
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>
-          <a href="/customer/${c.key}">
-            ${escapeHtml(c.name)}
-          </a>
-        </td>
+        <td><a href="/customer/${encodeURIComponent(c.key)}">${escapeHtml(c.name)}</a></td>
         <td class="mono">${escapeHtml(c.orgId || "—")}</td>
-        <td>${healthBadge(health.overall)}</td>
+        <td>${healthBadge(health.overall || health.health?.overall)}</td>
         <td>${trendDots(history.history)}</td>
-        <td class="muted">${new Date(health.evaluatedAt).toLocaleString()}</td>
+        <td class="muted">${health.evaluatedAt ? new Date(health.evaluatedAt).toLocaleString() : "—"}</td>
       `;
       tbody.appendChild(tr);
     }
-
   } catch (err) {
     tbody.innerHTML = `
-      <tr>
-        <td colspan="5" class="health-red">
-          Failed to load customers: ${escapeHtml(err.message)}
-        </td>
-      </tr>
+      <tr><td colspan="5" class="health-red">Failed to load customers: ${escapeHtml(err.message)}</td></tr>
     `;
   }
 }
 
 /* =========================================================
-   CUSTOMER DETAIL PAGE
+   Customer page (deep dive)
 ========================================================= */
 async function initCustomerPage() {
-  const root = qs("#customer-detail");
-  const key = root.dataset.key;
+  const key = getCustomerKeyFromPath();
+  const marker = qs("#customer-detail");
+  if (marker) marker.dataset.key = key;
 
-  try {
-    const [health, history, licenses] = await Promise.all([
-      loadCustomerHealth(key),
-      loadHealthHistory(key),
-      loadLicenses(key)
-    ]);
+  // Tabs + actions
+  if (qs(".tab")) setTabs();
 
-    renderHealthSummary(health);
-    renderHealthTrends(history.history);
-    renderLicenses(licenses.licenses);
+  const btnRefresh = qs("#btn-refresh");
+  const btnReeval = qs("#btn-reeval");
+  const btnPrint = qs("#btn-print");
+  const btnEmail = qs("#btn-email-alert");
+  const btnOpenReport = qs("#btn-open-report");
+  const btnPrintInline = qs("#btn-print-inline");
+  const btnRefreshAlerts = qs("#btn-refresh-alerts");
 
-  } catch (err) {
-    root.innerHTML = `
-      <div class="card health-red">
-        Failed to load customer data: ${escapeHtml(err.message)}
-      </div>
+  if (btnRefresh) btnRefresh.addEventListener("click", async () => {
+    clearCachePrefix(`health:${key}`);
+    clearCachePrefix(`history:${key}`);
+    clearCachePrefix(`licenses:${key}`);
+    clearCachePrefix(`devices:${key}`);
+    clearCachePrefix(`alerts:${key}`);
+    await hydrateCustomerPage(key, { force: true });
+  });
+
+  if (btnReeval) btnReeval.addEventListener("click", async () => {
+    btnReeval.disabled = true;
+    btnReeval.textContent = "Re-evaluating…";
+    try {
+      // clear cached view first so UI uses fresh data
+      clearCachePrefix(`health:${key}`);
+      await triggerReeval(key);
+      await hydrateCustomerPage(key, { force: true });
+    } finally {
+      btnReeval.disabled = false;
+      btnReeval.textContent = "Manual Re-eval";
+    }
+  });
+
+  if (btnPrint) btnPrint.addEventListener("click", () => {
+    window.open(`/report?customer=${encodeURIComponent(key)}`, "_blank");
+  });
+
+  if (btnOpenReport) btnOpenReport.addEventListener("click", () => {
+    window.open(`/report?customer=${encodeURIComponent(key)}`, "_blank");
+  });
+
+  if (btnPrintInline) btnPrintInline.addEventListener("click", () => window.print());
+
+  if (btnEmail) btnEmail.addEventListener("click", async () => {
+    btnEmail.disabled = true;
+    btnEmail.textContent = "Sending…";
+    try {
+      await apiFetch(`/customer/${encodeURIComponent(key)}/license-alert`, {
+        method: "POST",
+        body: {},
+        ttl: 0,
+        cacheKey: `license_alert:${key}:${now()}`
+      });
+      btnEmail.textContent = "Email Sent";
+      setTimeout(() => (btnEmail.textContent = "Send License Alert Email"), 1500);
+    } catch (err) {
+      alert(`Failed to send: ${err.message}`);
+      btnEmail.textContent = "Send License Alert Email";
+    } finally {
+      btnEmail.disabled = false;
+    }
+  });
+
+  if (btnRefreshAlerts) btnRefreshAlerts.addEventListener("click", async () => {
+    clearCachePrefix(`alerts:${key}`);
+    await hydrateAlerts(key);
+  });
+
+  // Devices filters
+  const deviceFilter = qs("#device-filter");
+  const deviceSearch = qs("#device-search");
+  if (deviceFilter) deviceFilter.addEventListener("change", () => applyDeviceFilters());
+  if (deviceSearch) deviceSearch.addEventListener("input", debounce(() => applyDeviceFilters(), 200));
+
+  await hydrateCustomerPage(key, { force: false });
+}
+
+async function hydrateCustomerPage(key, { force }) {
+  // Header/basic identity
+  qs("#cust-key") && (qs("#cust-key").textContent = key);
+
+  // Pull health + history + licenses in parallel
+  const [health, history, licenses] = await Promise.all([
+    loadCustomerHealth(key),
+    loadHealthHistory(key),
+    loadLicenses(key)
+  ]);
+
+  // Customer info
+  const cust = health.customer || licenses.customer || {};
+  if (qs("#cust-name")) qs("#cust-name").textContent = cust.name || `Customer: ${key}`;
+  if (qs("#cust-org")) qs("#cust-org").textContent = `OrgID: ${cust.orgId || "—"}`;
+
+  // Normalize health shape
+  const h = health.health || health;
+  const overall = health.overall || h.overall;
+
+  // Summary badges
+  qs("#health-overall") && (qs("#health-overall").innerHTML = healthBadge(overall));
+  qs("#health-calling") && (qs("#health-calling").innerHTML = healthBadge(h.calling));
+  qs("#health-messaging") && (qs("#health-messaging").innerHTML = healthBadge(h.messaging));
+  qs("#health-meetings") && (qs("#health-meetings").innerHTML = healthBadge(h.meetings));
+  qs("#health-devices") && (qs("#health-devices").innerHTML = healthBadge(h.devices || "unknown"));
+
+  qs("#health-evaluated") && (qs("#health-evaluated").textContent =
+    health.evaluatedAt ? new Date(health.evaluatedAt).toLocaleString() : "—"
+  );
+
+  // Trend
+  qs("#health-trends") && (qs("#health-trends").innerHTML = trendDots(history.history || []));
+  qs("#trend-hint") && (qs("#trend-hint").textContent = `${(history.history || []).length} days`);
+
+  // Transition banner (if worker includes transition)
+  const banner = qs("#transition-banner");
+  if (banner) {
+    const t = health.transition;
+    if (t?.from && t?.to) {
+      banner.classList.remove("hidden");
+      banner.innerHTML = `
+        <b>Health Transition:</b> ${healthBadge(t.from)} → ${healthBadge(t.to)}
+        <span class="muted small">(${new Date(t.occurredAt).toLocaleString()})</span>
+      `;
+    } else {
+      banner.classList.add("hidden");
+      banner.innerHTML = "";
+    }
+  }
+
+  // Deficient SKUs (from health endpoint)
+  renderDeficientSkus(health.deficientSkus || []);
+
+  // Licenses table
+  renderLicenses(licenses.licenses || []);
+
+  // Devices + Alerts + Report preview are “best effort”
+  hydrateDevices(key);
+  hydrateAlerts(key);
+  hydrateReportPreview(key, { health, history, licenses });
+}
+
+function renderDeficientSkus(rows) {
+  const tbody = qs("#deficient-table tbody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="3" class="muted">No deficiencies</td></tr>`;
+    return;
+  }
+
+  for (const r of rows) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(r.sku)}</td>
+      <td class="mono">${Number(r.available ?? 0)}</td>
+      <td class="mono">${Number(r.threshold ?? 0)}</td>
     `;
+    tbody.appendChild(tr);
   }
 }
 
-/* =========================================================
-   RENDERERS
-========================================================= */
-function renderHealthSummary(h) {
-  qs("#health-overall").innerHTML = healthBadge(h.health.overall);
-  qs("#health-calling").innerHTML = healthBadge(h.health.calling);
-  qs("#health-messaging").innerHTML = healthBadge(h.health.messaging);
-  qs("#health-meetings").innerHTML = healthBadge(h.health.meetings);
-  qs("#health-devices").innerHTML = healthBadge(h.health.devices);
-}
-
-function renderHealthTrends(history) {
-  qs("#health-trends").innerHTML = trendDots(history);
-}
-
-function renderLicenses(licenses = []) {
+function renderLicenses(licenses) {
   const tbody = qs("#licenses-table tbody");
-  tbody.innerHTML = "";
+  if (!tbody) return;
 
+  tbody.innerHTML = "";
   if (!licenses.length) {
     tbody.innerHTML = `<tr><td colspan="5" class="muted">No licenses found</td></tr>`;
     return;
@@ -278,9 +433,9 @@ function renderLicenses(licenses = []) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${escapeHtml(l.sku)}</td>
-      <td>${l.total}</td>
-      <td>${l.used}</td>
-      <td>${l.available}</td>
+      <td class="mono">${Number(l.total ?? 0)}</td>
+      <td class="mono">${Number(l.used ?? 0)}</td>
+      <td class="mono">${Number(l.available ?? 0)}</td>
       <td>${l.deficient ? healthBadge("red") : healthBadge("green")}</td>
     `;
     tbody.appendChild(tr);
@@ -288,8 +443,395 @@ function renderLicenses(licenses = []) {
 }
 
 /* =========================================================
-   GLOBAL ERROR SAFETY
+   Devices UI (drill-down)
 ========================================================= */
-window.addEventListener("unhandledrejection", e => {
-  console.error("Unhandled promise rejection:", e.reason);
-});
+let _deviceRows = [];
+
+async function hydrateDevices(key) {
+  const tbody = qs("#devices-table tbody");
+  const summary = qs("#devices-summary");
+  if (!tbody) return;
+
+  tbody.innerHTML = `<tr><td colspan="6" class="muted">Loading…</td></tr>`;
+  summary && (summary.textContent = "Loading device inventory…");
+
+  try {
+    const data = await loadDevices(key);
+    const devices = data.devices || data.items || [];
+
+    _deviceRows = devices.map(d => normalizeDeviceRow(d));
+    applyDeviceFilters();
+
+    const offlineCount = _deviceRows.filter(r => r.statusClass === "health-red").length;
+    summary && (summary.textContent =
+      `${_deviceRows.length} devices • ${offlineCount} offline/disconnected`
+    );
+  } catch (err) {
+    if (isNotFoundError(err)) {
+      tbody.innerHTML = `
+        <tr><td colspan="6" class="muted">
+          Devices endpoint not available yet. Add <span class="mono">/api/customer/:key/devices</span> to worker.
+        </td></tr>`;
+      summary && (summary.textContent = "Devices API not enabled yet.");
+      return;
+    }
+
+    tbody.innerHTML = `<tr><td colspan="6" class="health-red">Failed: ${escapeHtml(err.message)}</td></tr>`;
+    summary && (summary.textContent = "Failed to load devices.");
+  }
+}
+
+function normalizeDeviceRow(d) {
+  const name = d.displayName || d.name || d.deviceName || "—";
+  const model = d.product || d.model || d.deviceModel || "—";
+  const statusRaw = String(d.connectionStatus || d.status || "").toLowerCase();
+  const status =
+    statusRaw.includes("offline") || statusRaw.includes("disconnected") ? "offline" :
+    statusRaw.includes("online") || statusRaw.includes("connected") ? "online" :
+    statusRaw || "unknown";
+
+  const lastSeen = d.lastSeen || d.lastActivityTime || d.lastUpdated || null;
+  const location = d.locationName || d.placeName || d.location || "—";
+
+  // Root cause heuristic (best effort)
+  // - if no lastSeen: registration/inventory drift
+  // - offline + lastSeen old: power/network likely
+  // - disconnected: network/LAN
+  const rootCause = guessDeviceRootCause({ status, lastSeen });
+
+  const statusClass =
+    status === "offline" ? "health-red" :
+    status === "online" ? "health-green" :
+    "health-unknown";
+
+  const searchable = `${name} ${model} ${status} ${location} ${d.mac || ""} ${d.ipAddress || ""}`.toLowerCase();
+
+  return {
+    name,
+    model,
+    status,
+    statusClass,
+    lastSeen,
+    location,
+    rootCause,
+    searchable
+  };
+}
+
+function guessDeviceRootCause({ status, lastSeen }) {
+  if (!lastSeen) return "Cloud inventory / registration drift";
+  const ageMs = Date.now() - new Date(lastSeen).getTime();
+  const hours = isFinite(ageMs) ? ageMs / 36e5 : null;
+
+  if (status === "offline") {
+    if (hours != null && hours > 48) return "Power / site outage likely";
+    return "Network / power intermittent";
+  }
+  if (status === "disconnected") return "LAN / network drop likely";
+  return "—";
+}
+
+function applyDeviceFilters() {
+  const tbody = qs("#devices-table tbody");
+  if (!tbody) return;
+
+  const f = qs("#device-filter")?.value || "all";
+  const q = (qs("#device-search")?.value || "").trim().toLowerCase();
+
+  let rows = _deviceRows.slice();
+
+  if (f === "offline") rows = rows.filter(r => r.status === "offline" || r.status === "disconnected");
+  if (f === "online") rows = rows.filter(r => r.status === "online" || r.status === "connected");
+  if (q) rows = rows.filter(r => r.searchable.includes(q));
+
+  tbody.innerHTML = "";
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="muted">No matching devices</td></tr>`;
+    return;
+  }
+
+  for (const r of rows) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(r.name)}</td>
+      <td>${escapeHtml(r.model)}</td>
+      <td><span class="badge ${r.statusClass}">${escapeHtml(r.status)}</span></td>
+      <td class="mono">${r.lastSeen ? new Date(r.lastSeen).toLocaleString() : "—"}</td>
+      <td>${escapeHtml(r.location)}</td>
+      <td class="muted">${escapeHtml(r.rootCause)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+/* =========================================================
+   Alerts UI (audit)
+========================================================= */
+async function hydrateAlerts(key) {
+  const tbody = qs("#alerts-table tbody");
+  if (!tbody) return;
+
+  tbody.innerHTML = `<tr><td colspan="4" class="muted">Loading…</td></tr>`;
+
+  try {
+    const data = await loadAlerts(key);
+    const alerts = data.alerts || data.items || [];
+
+    tbody.innerHTML = "";
+
+    if (!alerts.length) {
+      tbody.innerHTML = `<tr><td colspan="4" class="muted">No alerts recorded</td></tr>`;
+      return;
+    }
+
+    for (const a of alerts) {
+      const when = a.occurredAt || a.when || a.timestamp || null;
+      const from = a.from || a.prev || "—";
+      const to = a.to || a.current || "—";
+      const why = a.reason || a.why || a.message || "Health degradation";
+      const emailed = Array.isArray(a.emailedTo) ? a.emailedTo.join(", ") : (a.emailedTo || "—");
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="mono">${when ? new Date(when).toLocaleString() : "—"}</td>
+        <td>${healthBadge(from)} → ${healthBadge(to)}</td>
+        <td>${escapeHtml(why)}</td>
+        <td class="muted">${escapeHtml(emailed)}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+  } catch (err) {
+    if (isNotFoundError(err)) {
+      tbody.innerHTML = `
+        <tr><td colspan="4" class="muted">
+          Alerts endpoint not available yet. Add <span class="mono">/api/customer/:key/alerts</span> to worker.
+        </td></tr>`;
+      return;
+    }
+    tbody.innerHTML = `<tr><td colspan="4" class="health-red">Failed: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+/* =========================================================
+   Executive page
+========================================================= */
+async function initExecutivePage() {
+  const tbody = qs("#exec-table tbody");
+  const counts = qs("#exec-counts");
+  const worst = qs("#exec-worst");
+  const transitions = qs("#exec-transitions");
+  const search = qs("#exec-search");
+  const btn = qs("#btn-exec-refresh");
+
+  async function hydrate() {
+    tbody.innerHTML = `<tr><td colspan="8" class="muted">Loading…</td></tr>`;
+    counts.textContent = "Loading…";
+    worst.textContent = "Loading…";
+    transitions.textContent = "Loading…";
+
+    const data = await loadCustomers();
+    const rows = [];
+
+    for (const c of data.customers || []) {
+      const [health, history] = await Promise.all([
+        loadCustomerHealth(c.key),
+        loadHealthHistory(c.key)
+      ]);
+
+      const h = health.health || health;
+      rows.push({
+        key: c.key,
+        name: c.name,
+        orgId: c.orgId || "",
+        overall: health.overall || h.overall,
+        calling: h.calling,
+        messaging: h.messaging,
+        meetings: h.meetings,
+        devices: h.devices || "unknown",
+        evaluatedAt: health.evaluatedAt || null,
+        history: history.history || []
+      });
+    }
+
+    // sort by risk (overall, then devices, then calling)
+    rows.sort((a, b) => {
+      const d = healthOrder(b.overall) - healthOrder(a.overall);
+      if (d) return d;
+      const dd = healthOrder(b.devices) - healthOrder(a.devices);
+      if (dd) return dd;
+      return healthOrder(b.calling) - healthOrder(a.calling);
+    });
+
+    // counts
+    const cGreen = rows.filter(r => r.overall === "green").length;
+    const cYellow = rows.filter(r => r.overall === "yellow").length;
+    const cRed = rows.filter(r => r.overall === "red").length;
+
+    counts.innerHTML = `
+      <div class="kpi-row">
+        <div class="kpi">${healthBadge("green")} <b>${cGreen}</b></div>
+        <div class="kpi">${healthBadge("yellow")} <b>${cYellow}</b></div>
+        <div class="kpi">${healthBadge("red")} <b>${cRed}</b></div>
+        <div class="kpi muted">Total: <b>${rows.length}</b></div>
+      </div>
+    `;
+
+    // worst top 5
+    worst.innerHTML = rows.slice(0, 5).map(r => `
+      <div class="row between">
+        <a href="/customer/${encodeURIComponent(r.key)}">${escapeHtml(r.name)}</a>
+        <span>${healthBadge(r.overall)}</span>
+      </div>
+    `).join("");
+
+    // transitions (best effort: worker may include transition in health)
+    const tRows = rows
+      .map(r => ({ r, t: (r.transition || null) }))
+      .filter(x => x.t?.from && x.t?.to);
+
+    transitions.innerHTML = tRows.length
+      ? tRows.slice(0, 5).map(x => `
+          <div class="row between">
+            <a href="/customer/${encodeURIComponent(x.r.key)}">${escapeHtml(x.r.name)}</a>
+            <span>${healthBadge(x.t.from)} → ${healthBadge(x.t.to)}</span>
+          </div>
+        `).join("")
+      : `<div class="muted">No recent transitions available</div>`;
+
+    // table
+    function renderTable(filterText = "") {
+      const ft = filterText.trim().toLowerCase();
+      const list = ft ? rows.filter(r => r.name.toLowerCase().includes(ft)) : rows;
+
+      tbody.innerHTML = "";
+      for (const r of list) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><a href="/customer/${encodeURIComponent(r.key)}">${escapeHtml(r.name)}</a></td>
+          <td>${healthBadge(r.overall)}</td>
+          <td>${healthBadge(r.calling)}</td>
+          <td>${healthBadge(r.messaging)}</td>
+          <td>${healthBadge(r.meetings)}</td>
+          <td>${healthBadge(r.devices)}</td>
+          <td>${trendDots(r.history)}</td>
+          <td class="muted">${r.evaluatedAt ? new Date(r.evaluatedAt).toLocaleString() : "—"}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+
+      if (!list.length) {
+        tbody.innerHTML = `<tr><td colspan="8" class="muted">No matching customers</td></tr>`;
+      }
+    }
+
+    renderTable(search?.value || "");
+    if (search) search.oninput = debounce(() => renderTable(search.value), 200);
+  }
+
+  if (btn) btn.addEventListener("click", async () => {
+    cache.delete("customers");
+    clearCachePrefix("health:");
+    clearCachePrefix("history:");
+    await hydrate();
+  });
+
+  await hydrate();
+}
+
+/* =========================================================
+   Report page
+========================================================= */
+async function initReportPage() {
+  const marker = qs("#customer-report");
+  if (!marker) return;
+
+  const url = new URL(location.href);
+  const key = url.searchParams.get("customer") || "";
+  marker.dataset.key = key;
+
+  if (!key) {
+    document.body.innerHTML = `<div class="container"><div class="card health-red">Missing customer parameter.</div></div>`;
+    return;
+  }
+
+  const [health, history, licenses] = await Promise.all([
+    loadCustomerHealth(key),
+    loadHealthHistory(key),
+    loadLicenses(key)
+  ]);
+
+  // best effort devices & alerts
+  const devices = await safeOptional(() => loadDevices(key));
+  const alerts = await safeOptional(() => loadAlerts(key));
+
+  const cust = health.customer || licenses.customer || {};
+  qs("#report-customer").textContent = cust.name || `Customer: ${key}`;
+  qs("#report-meta").textContent = `${new Date().toLocaleString()} • Key: ${key} • OrgID: ${cust.orgId || "—"}`;
+
+  const h = health.health || health;
+  const overall = health.overall || h.overall;
+
+  qs("#report-kpis").innerHTML = `
+    <div class="kpi-row">
+      <div class="kpi"><div class="muted">Overall</div>${healthBadge(overall)}</div>
+      <div class="kpi"><div class="muted">Calling</div>${healthBadge(h.calling)}</div>
+      <div class="kpi"><div class="muted">Messaging</div>${healthBadge(h.messaging)}</div>
+      <div class="kpi"><div class="muted">Meetings</div>${healthBadge(h.meetings)}</div>
+      <div class="kpi"><div class="muted">Devices</div>${healthBadge(h.devices || "unknown")}</div>
+    </div>
+  `;
+
+  qs("#report-trend").innerHTML = trendDots(history.history || []);
+
+  qs("#report-deficient").innerHTML = (health.deficientSkus || []).length
+    ? `<ul>${health.deficientSkus.map(x => `<li><b>${escapeHtml(x.sku)}</b> — available ${x.available} (threshold ${x.threshold})</li>`).join("")}</ul>`
+    : `<div class="muted">No deficiencies detected</div>`;
+
+  // devices summary
+  if (devices?.ok && Array.isArray(devices.devices)) {
+    const total = devices.devices.length;
+    const offline = devices.devices.filter(d => String(d.connectionStatus || "").toLowerCase().includes("offline")).length;
+    qs("#report-devices").innerHTML = `<div>${total} devices • ${offline} offline/disconnected</div>`;
+  } else {
+    qs("#report-devices").innerHTML = `<div class="muted">Devices API not available yet</div>`;
+  }
+
+  // alerts summary
+  if (alerts?.ok && Array.isArray(alerts.alerts)) {
+    const items = alerts.alerts.slice(0, 10);
+    qs("#report-alerts").innerHTML = items.length
+      ? `<ul>${items.map(a => `<li>${escapeHtml(a.occurredAt || a.when || "—")}: ${escapeHtml(a.from || "—")} → ${escapeHtml(a.to || "—")} (${escapeHtml(a.reason || "Health degradation")})</li>`).join("")}</ul>`
+      : `<div class="muted">No alerts recorded</div>`;
+  } else {
+    qs("#report-alerts").innerHTML = `<div class="muted">Alerts API not available yet</div>`;
+  }
+
+  // auto-open print dialog if you want later (leave off for now)
+  // window.print();
+}
+
+async function hydrateReportPreview(key, { health, history, licenses }) {
+  const el = qs("#report-preview");
+  if (!el) return;
+
+  const cust = health.customer || licenses.customer || {};
+  const h = health.health || health;
+  const overall = health.overall || h.overall;
+
+  el.innerHTML = `
+    <div class="report-card">
+      <div class="row between">
+        <div><b>${escapeHtml(cust.name || key)}</b> <span class="muted mono">(${escapeHtml(cust.orgId || "—")})</span></div>
+        <div>${healthBadge(overall)}</div>
+      </div>
+      <div class="muted small">Calling ${healthBadge(h.calling)} • Messaging ${healthBadge(h.messaging)} • Meetings ${healthBadge(h.meetings)} • Devices ${healthBadge(h.devices || "unknown")}</div>
+      <div class="muted small" style="margin-top:8px;">Trend</div>
+      ${trendDots(history.history || [])}
+      <div class="muted small" style="margin-top:8px;">Tip: Open the report page for a print-ready version.</div>
+    </div>
+  `;
+}
+
+async function safeOptional(fn) {
+  try { return await fn(); } catch { return null; }
+}
