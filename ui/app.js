@@ -10,7 +10,7 @@ const inflight = new Map();
 
 const CACHE_TTL = {
   customers: 60 * 1000,
-  health: 60 * 1000,
+  health: 30 * 1000,
   history: 5 * 60 * 1000,
   licenses: 2 * 60 * 1000,
   devices: 2 * 60 * 1000,
@@ -847,46 +847,68 @@ async function hydrateAnalytics(key) {
 
   try {
     const data = await loadAnalytics(key);
+
     const calling = data.kpis?.calling || {};
     const meetings = data.kpis?.meetings || {};
-    const insights = data.insights || [];
+    const insights = Array.isArray(data.insights) ? data.insights : [];
 
-    el.innerHTML = `
-      <div class="kpi-row">
-        <div class="kpi">
-          <div class="muted">Total Calls</div>
-          <b>${calling.totalCalls ?? "—"}</b>
-        </div>
-        <div class="kpi">
-          <div class="muted">Call Fail %</div>
-          <b>${calling.failedPct ?? 0}%</b>
-        </div>
-        <div class="kpi">
-          <div class="muted">PSTN Usage</div>
-          <b>${calling.pstnPct ?? 0}%</b>
-        </div>
-        <div class="kpi">
-          <div class="muted">Peak Hour</div>
-          <b>${calling.peakHour ?? "—"}</b>
-        </div>
-      </div>
+  el.innerHTML = `
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="muted">Total Calls</div>
+      <b>${calling.totalCalls ?? "—"}</b>
+    </div>
+    <div class="kpi">
+      <div class="muted">Call Fail %</div>
+      <b>${calling.failedPct ?? 0}%</b>
+    </div>
+    <div class="kpi">
+      <div class="muted">PSTN Usage</div>
+      <b>${calling.pstnPct ?? 0}%</b>
+    </div>
+    <div class="kpi">
+      <div class="muted">Peak Hour</div>
+      <b>${calling.peakHour ?? "—"}</b>
+    </div>
+  </div>
 
-      <div class="kpi-row">
-        <div class="kpi">
-          <div class="muted">Meetings</div>
-          <b>${meetings.totalMeetings ?? "—"}</b>
-        </div>
-        <div class="kpi">
-          <div class="muted">Join Failure %</div>
-          <b>${meetings.joinFailurePct ?? 0}%</b>
-        </div>
-        <div class="kpi">
-          <div class="muted">Avg Participants</div>
-          <b>${meetings.avgParticipants ?? "—"}</b>
-        </div>
-      </div>
+  <div class="card" style="margin-top:16px;">
+    <div class="row between">
+      <div class="card-title">Calling Volume Trend (24h)</div>
+      <span class="muted small">Hourly distribution</span>
+    </div>
 
-      ${insights.length ? `
+    ${renderTrendBars(
+      (calling.hourly || []).map(h => ({
+        value: h.calls,
+        label: h.hour,
+        level:
+  h.calls < calling.critThreshold ? "red" :
+  h.calls < calling.warnThreshold ? "yellow" :
+  "green"
+
+      }))
+    )}
+  </div>
+
+  <div class="kpi-row" style="margin-top:16px;">
+    <div class="kpi">
+      <div class="muted">Meetings</div>
+      <b>${meetings.totalMeetings ?? "—"}</b>
+    </div>
+    <div class="kpi">
+      <div class="muted">Join Failure %</div>
+      <b>${meetings.joinFailurePct ?? 0}%</b>
+    </div>
+    <div class="kpi">
+      <div class="muted">Avg Participants</div>
+      <b>${meetings.avgParticipants ?? "—"}</b>
+    </div>
+  </div>
+
+  ${
+    insights.length
+      ? `
         <div class="card" style="margin-top:16px;">
           <div class="card-title">Insights</div>
           ${insights.map(i => `
@@ -896,12 +918,15 @@ async function hydrateAnalytics(key) {
             </div>
           `).join("")}
         </div>
-      ` : `
+      `
+      : `
         <div class="muted" style="margin-top:12px;">
           No risk insights detected for this period.
         </div>
-      `}
-    `;
+      `
+  }
+`;
+
   } catch (err) {
     el.innerHTML = `
       <div class="empty-state">
@@ -952,7 +977,20 @@ async function hydratePstn(key) {
                     <td>${escapeHtml(t.name)}</td>
                     <td class="mono">${t.activeCalls}</td>
                     <td class="mono">${t.maxCalls}</td>
-                    <td class="mono">${t.utilizationPct}%</td>
+                    <td>
+  ${renderTrendBars(
+    [{
+      value: t.utilizationPct,
+      label: "Utilization",
+      level:
+        t.utilizationPct > 85 ? "red" :
+        t.utilizationPct > 65 ? "yellow" :
+        "green"
+    }],
+    { compact: true }
+  )}
+</td>
+
                     <td>${healthBadge(t.health)}</td>
                   </tr>
                 `).join("")}
@@ -1003,42 +1041,57 @@ async function hydratePstn(key) {
 async function hydrateCdr(key) {
   const el = qs("#tab-cdr");
   if (!el) return;
-
-  el.innerHTML = `
+el.innerHTML = `
     <div class="empty-state">
-      <div class="empty-title">Loading call records</div>
-      <div class="empty-text">Analyzing recent call activity…</div>
+      <div class="empty-title">Loading CDR</div>
+      <div class="empty-text">Fetching call detail records…</div>
     </div>
   `;
 
   try {
     const data = await loadCdr(key);
-    const m = data.metrics || {};
+    const m = data.metrics || data.kpis || {};
 
-    el.innerHTML = `
-      <div class="kpi-row">
-        <div class="kpi">
-          <div class="muted">Total Calls</div>
-          <b>${m.totalCalls ?? "—"}</b>
-        </div>
-        <div class="kpi">
-          <div class="muted">Dropped Call %</div>
-          <b>${m.droppedCallPct ?? 0}%</b>
-        </div>
-        <div class="kpi">
-          <div class="muted">Avg Duration</div>
-          <b>${m.avgDurationSeconds ?? 0}s</b>
-        </div>
-        <div class="kpi">
-          <div class="muted">Peak Hour</div>
-          <b>${m.peakHour ?? "—"}</b>
-        </div>
-      </div>
+  el.innerHTML = `
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="muted">Total Calls</div>
+      <b>${m.totalCalls ?? "—"}</b>
+    </div>
+    <div class="kpi">
+      <div class="muted">Dropped Call %</div>
+      <b>${m.droppedCallPct ?? 0}%</b>
+    </div>
+    <div class="kpi">
+      <div class="muted">Avg Duration</div>
+      <b>${m.avgDurationSeconds ?? 0}s</b>
+    </div>
+    <div class="kpi">
+      <div class="muted">Peak Hour</div>
+      <b>${m.peakHour ?? "—"}</b>
+    </div>
+  </div>
 
-      <div class="muted" style="margin-top:12px;">
-        Source: Webex Call Detail Records (last 7 days)
-      </div>
-    `;
+  <div class="card" style="margin-top:16px;">
+    <div class="card-title">Call Volume Trend (7 Days)</div>
+
+    ${renderTrendBars(
+      (data.trend || []).map(d => ({
+        value: d.totalCalls,
+        label: d.date,
+        level:
+          d.failedPct > 5 ? "red" :
+          d.failedPct > 2 ? "yellow" :
+          "green"
+      }))
+    )}
+  </div>
+
+  <div class="muted small" style="margin-top:12px;">
+    Source: Webex Call Detail Records (last 7 days)
+  </div>
+`;
+
   } catch (err) {
     el.innerHTML = `
       <div class="empty-state">
@@ -1154,7 +1207,17 @@ async function initExecutivePage() {
           <td>${healthBadge(r.messaging)}</td>
           <td>${healthBadge(r.meetings)}</td>
           <td>${healthBadge(r.devices)}</td>
-          <td>${trendDots(r.history)}</td>
+          <td>
+  ${renderTrendBars(
+    (r.history || []).map(h => ({
+      value: healthOrder(h.overall),
+      label: h.date,
+      level: h.overall
+    })),
+    { compact: true }
+  )}
+</td>
+
           <td class="muted">${r.evaluatedAt ? new Date(r.evaluatedAt).toLocaleString() : "—"}</td>
         `;
         tbody.appendChild(tr);
