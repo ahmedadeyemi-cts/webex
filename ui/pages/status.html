@@ -17,6 +17,7 @@
     }
 
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
@@ -80,6 +81,7 @@
       margin-top: 10px;
       font-size: 12px;
       color: var(--muted);
+      line-height: 1.4;
     }
 
     footer {
@@ -101,7 +103,7 @@
 </main>
 
 <footer>
-  Last updated automatically from Webex APIs
+  Status refreshed automatically
 </footer>
 
 <script>
@@ -123,15 +125,55 @@
   async function loadStatus() {
     try {
       const res = await fetch("/api/status", { cache: "no-store" });
-      const json = await res.json();
 
-      if (!json.ok) {
-        throw new Error(json.error || "Status fetch failed");
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        throw new Error("API returned non-JSON response");
       }
 
+      const json = await res.json();
+      grid.innerHTML = "";
+
+      /* -------------------------------
+         Case 1: API reachable but limited
+         (WAF / bot protection / HTML upstream)
+      -------------------------------- */
+      if (!json.ok) {
+        grid.innerHTML = `
+          <div class="card">
+            <div class="service">Webex Status</div>
+            <div class="status">
+              <span class="dot warn"></span>
+              Limited visibility
+            </div>
+            <div class="meta">
+              ${json.error || "Upstream status provider returned non-JSON content."}
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      /* -------------------------------
+         Case 2: Normal operational data
+      -------------------------------- */
       const services = json.services || [];
 
-      grid.innerHTML = "";
+      if (!services.length) {
+        grid.innerHTML = `
+          <div class="card">
+            <div class="service">Webex Status</div>
+            <div class="status">
+              <span class="dot warn"></span>
+              No component data available
+            </div>
+            <div class="meta">
+              Status API returned no components.
+            </div>
+          </div>
+        `;
+        return;
+      }
 
       services.forEach(svc => {
         const state = svc.status || svc.state;
@@ -147,7 +189,9 @@
           </div>
           <div class="meta">
             ${svc.message || ""}
-            ${svc.lastChecked ? `<br>Checked: ${new Date(svc.lastChecked).toLocaleString()}` : ""}
+            ${svc.lastChecked
+              ? `<br>Checked: ${new Date(svc.lastChecked).toLocaleString()}`
+              : ""}
           </div>
         `;
 
@@ -157,15 +201,17 @@
     } catch (err) {
       grid.innerHTML = `
         <div class="card">
-          <div class="service">Status Unavailable</div>
+          <div class="service">Status Error</div>
           <div class="status">
             <span class="dot err"></span>
-            Error loading status
+            Unable to load status
           </div>
-          <div class="meta">${err.message}</div>
+          <div class="meta">
+            ${err.message}
+          </div>
         </div>
       `;
-      console.error(err);
+      console.error("[status]", err);
     }
   }
 
