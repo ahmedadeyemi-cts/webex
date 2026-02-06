@@ -851,8 +851,76 @@ async function hydrateAnalytics(key) {
     console.log("Analytics payload (full)", data);
     console.log("Analytics KPIs", data.kpis);
     console.log("Analytics KPIs keys", Object.keys(data.kpis || {}));
-    const calling = data.kpis?.calling || {};
-    const meetings = data.kpis?.meetings || {};
+   /* ============================
+   NORMALIZE ANALYTICS KPIs
+============================ */
+const rawCalling = data.kpis?.calling || {};
+const rawMeetings = data.kpis?.meetings || {};
+
+const calling = {
+  totalCalls:
+    rawCalling.totalCalls ??
+    rawCalling.callCount ??
+    0,
+
+  failedCalls:
+    rawCalling.failedCalls ??
+    rawCalling.failedCallCount ??
+    0,
+
+  failedPct:
+    rawCalling.failedCallRate != null
+      ? Math.round(rawCalling.failedCallRate * 100)
+      : rawCalling.callCount
+        ? Math.round((rawCalling.failedCalls / rawCalling.callCount) * 100)
+        : 0,
+
+  pstnCalls:
+    rawCalling.pstnCalls ??
+    0,
+
+  pstnPct:
+    rawCalling.callCount
+      ? Math.round((rawCalling.pstnCalls / rawCalling.callCount) * 100)
+      : 0,
+
+  avgDurationSeconds:
+    rawCalling.avgDurationSeconds ??
+    rawCalling.averageDuration ??
+    0,
+
+  peakConcurrentCalls:
+    rawCalling.peakConcurrentCalls ??
+    rawCalling.peakCalls ??
+    "—",
+
+  hourly:
+    Array.isArray(rawCalling.hourly)
+      ? rawCalling.hourly
+      : []
+};
+
+const meetings = {
+  totalMeetings:
+    rawMeetings.totalMeetings ??
+    rawMeetings.meetingCount ??
+    0,
+
+  joinFailurePct:
+    rawMeetings.joinFailureRate != null
+      ? Math.round(rawMeetings.joinFailureRate * 100)
+      : 0,
+
+  avgParticipants:
+    rawMeetings.avgParticipants ??
+    rawMeetings.averageParticipants ??
+    "—"
+};
+
+const insights = Array.isArray(data.insights)
+  ? data.insights
+  : [];
+
     const insights = Array.isArray(data.insights) ? data.insights : [];
 
   el.innerHTML = `
@@ -871,7 +939,7 @@ async function hydrateAnalytics(key) {
     </div>
     <div class="kpi">
       <div class="muted">Peak Hour</div>
-      <b>${calling.peakHour ?? "—"}</b>
+      <b>${calling.peakConcurrentCalls}</b>
     </div>
   </div>
 
