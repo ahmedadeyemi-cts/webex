@@ -231,16 +231,115 @@
   ====================================================== -->
 
   <!-- Licenses -->
-  <section class="card tabpanel hidden" id="tab-licenses">…</section>
+  <section class="card tabpanel hidden" id="tab-licenses">
+  <div class="card-title">Licenses</div>
+
+  <div class="table-wrap">
+    <table class="table" id="licenses-table">
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Total</th>
+          <th>Used</th>
+          <th>Available</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td colspan="5" class="muted">Loading licenses…</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
 
   <!-- Devices -->
-  <section class="card tabpanel hidden" id="tab-devices">…</section>
+ <section class="card tabpanel hidden" id="tab-devices">
+  <div class="row between">
+    <div class="card-title">Devices</div>
+    <div class="muted small" id="devices-summary">—</div>
+  </div>
+
+  <div class="row" style="margin-bottom:12px;">
+    <select id="device-filter" class="input">
+      <option value="all">All</option>
+      <option value="online">Online</option>
+      <option value="offline">Offline</option>
+    </select>
+
+    <input
+      id="device-search"
+      class="input"
+      placeholder="Search devices…"
+      style="margin-left:8px;"
+    />
+  </div>
+
+  <div class="table-wrap">
+    <table class="table" id="devices-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Model</th>
+          <th>Status</th>
+          <th>Last Seen</th>
+          <th>Location</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td colspan="6" class="muted">Loading devices…</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
 
   <!-- Alerts -->
-  <section class="card tabpanel hidden" id="tab-alerts">…</section>
+  <section class="card tabpanel hidden" id="tab-alerts">
+  <div class="row between">
+    <div class="card-title">Health Alerts</div>
+    <button class="btn btn-small" id="btn-refresh-alerts">Refresh</button>
+  </div>
+
+  <div class="table-wrap">
+    <table class="table" id="alerts-table">
+      <thead>
+        <tr>
+          <th>When</th>
+          <th>Transition</th>
+          <th>Reason</th>
+          <th>Notified</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td colspan="4" class="muted">Loading alerts…</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
 
   <!-- Report -->
-  <section class="card tabpanel hidden" id="tab-report">…</section>
+  <section class="card tabpanel hidden" id="tab-report">
+  <div class="row between">
+    <div class="card-title">Customer Report</div>
+    <button class="btn btn-small" id="btn-open-report">
+      Open Full Report
+    </button>
+  </div>
+
+  <div id="report-preview" class="muted">
+    Preparing report preview…
+  </div>
+</section>
+
 
   <!-- Marker for app.js -->
   <div id="customer-detail" data-key="" class="hidden"></div>
