@@ -296,3 +296,40 @@ button:hover,
   font-size: 12px;
   color: var(--text-muted);
 }
+/* =========================================================
+   MINI TREND CHARTS (CSS ONLY)
+========================================================= */
+
+.trend-mini {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 36px;
+  padding: 6px 0;
+}
+
+.trend-bar {
+  width: 6px;
+  border-radius: 4px;
+  background: var(--unknown-bg);
+  transition: background .2s ease;
+}
+
+/* Heights (JS assigns inline style: height:% ) */
+.trend-bar.green { background: var(--green); }
+.trend-bar.yellow { background: var(--yellow); }
+.trend-bar.red { background: var(--red); }
+.trend-bar.unknown { background: var(--unknown); }
+
+/* Hover hint */
+.trend-bar:hover {
+  opacity: .85;
+}
+
+/* Compact version for tables */
+.trend-mini.compact {
+  height: 24px;
+}
+.trend-mini.compact .trend-bar {
+  width: 4px;
+}
