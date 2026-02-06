@@ -108,7 +108,26 @@ async function apiFetch(path, {
   inflight.set(cacheKey, req);
   return req;
 }
+function renderTrendBars(values, { compact = false } = {}) {
+  if (!values || !values.length) return `<span class="muted">—</span>`;
 
+  const max = Math.max(...values.map(v => v.value), 1);
+
+  return `
+    <div class="trend-mini ${compact ? "compact" : ""}">
+      ${values.map(v => {
+        const h = Math.round((v.value / max) * 100);
+        return `
+          <span
+            class="trend-bar ${v.level || "green"}"
+            style="height:${h}%"
+            title="${escapeHtml(v.label)}: ${v.value}"
+          ></span>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
 /* =========================================================
    Health UI helpers
 ========================================================= */
