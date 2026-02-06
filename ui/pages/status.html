@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Webex Platform Status</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    :root {
+      --ok: #16a34a;
+      --warn: #f59e0b;
+      --err: #dc2626;
+      --bg: #0f172a;
+      --card: #020617;
+      --muted: #94a3b8;
+      --border: #1e293b;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: #e5e7eb;
+    }
+
+    header {
+      padding: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 600;
+    }
+
+    main {
+      padding: 24px;
+      max-width: 1100px;
+      margin: auto;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .service {
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .ok { background: var(--ok); }
+    .warn { background: var(--warn); }
+    .err { background: var(--err); }
+
+    .meta {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Webex Platform Status</h1>
+</header>
+
+<main>
+  <div id="grid" class="grid"></div>
+</main>
+
+<footer>
+  Last updated automatically from Webex APIs
+</footer>
+
+<script>
+  const grid = document.getElementById("grid");
+
+  function statusClass(state) {
+    if (!state) return "warn";
+    if (state === "operational" || state === "ok") return "ok";
+    if (state === "degraded") return "warn";
+    return "err";
+  }
+
+  function label(state) {
+    return state
+      ? state.charAt(0).toUpperCase() + state.slice(1)
+      : "Unknown";
+  }
+
+  async function loadStatus() {
+    try {
+      const res = await fetch("/status", { cache: "no-store" });
+      const json = await res.json();
+
+      if (!json.ok) {
+        throw new Error(json.error || "Status fetch failed");
+      }
+
+      const services = json.services || [];
+
+      grid.innerHTML = "";
+
+      services.forEach(svc => {
+        const state = svc.status || svc.state;
+
+        const card = document.createElement("div");
+        card.className = "card";
+
+        card.innerHTML = `
+          <div class="service">${svc.name || "Unknown Service"}</div>
+          <div class="status">
+            <span class="dot ${statusClass(state)}"></span>
+            ${label(state)}
+          </div>
+          <div class="meta">
+            ${svc.message || ""}
+            ${svc.lastChecked ? `<br>Checked: ${new Date(svc.lastChecked).toLocaleString()}` : ""}
+          </div>
+        `;
+
+        grid.appendChild(card);
+      });
+
+    } catch (err) {
+      grid.innerHTML = `
+        <div class="card">
+          <div class="service">Status Unavailable</div>
+          <div class="status">
+            <span class="dot err"></span>
+            Error loading status
+          </div>
+          <div class="meta">${err.message}</div>
+        </div>
+      `;
+      console.error(err);
+    }
+  }
+
+  loadStatus();
+  setInterval(loadStatus, 60_000);
+</script>
+
+</body>
+</html>
