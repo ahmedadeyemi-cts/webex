@@ -188,6 +188,32 @@ async function triggerReeval(key) {
     });
   }
 }
+/**
+ * NEW: customer analytics (calling, meetings, devices)
+ */
+const loadAnalytics = (key) =>
+  apiFetch(`/customer/${encodeURIComponent(key)}/analytics`, {
+    cacheKey: `analytics:${key}`,
+    ttl: 2 * 60 * 1000
+  });
+
+/**
+ * NEW: PSTN health / trunks / sites
+ */
+const loadPstn = (key) =>
+  apiFetch(`/customer/${encodeURIComponent(key)}/pstn`, {
+    cacheKey: `pstn:${key}`,
+    ttl: 2 * 60 * 1000
+  });
+
+/**
+ * NEW: Call Detail Records
+ */
+const loadCdr = (key) =>
+  apiFetch(`/customer/${encodeURIComponent(key)}/cdr`, {
+    cacheKey: `cdr:${key}`,
+    ttl: 2 * 60 * 1000
+  });
 
 /* =========================================================
    Routing helpers for UI pages
@@ -205,18 +231,46 @@ function setTabs() {
     licenses: qs("#tab-licenses"),
     devices: qs("#tab-devices"),
     alerts: qs("#tab-alerts"),
-    report: qs("#tab-report")
+    report: qs("#tab-report"),
+    analytics: qs("#tab-analytics"),
+    pstn: qs("#tab-pstn"),
+    cdr: qs("#tab-cdr")
   };
+
+  const key = getCustomerKeyFromPath();
 
   function activate(name) {
     tabs.forEach(t => t.classList.toggle("active", t.dataset.tab === name));
+
     Object.entries(panels).forEach(([k, el]) => {
       if (!el) return;
       el.classList.toggle("hidden", k !== name);
     });
+
+    // Lazy load when tab is opened
+    switch (name) {
+      case "devices":
+        hydrateDevices(key);
+        break;
+      case "alerts":
+        hydrateAlerts(key);
+        break;
+      case "analytics":
+        hydrateAnalytics(key);
+        break;
+      case "pstn":
+        hydratePstn(key);
+        break;
+      case "cdr":
+        hydrateCdr(key);
+        break;
+    }
   }
 
-  tabs.forEach(btn => btn.addEventListener("click", () => activate(btn.dataset.tab)));
+  tabs.forEach(btn =>
+    btn.addEventListener("click", () => activate(btn.dataset.tab))
+  );
+
   activate("licenses");
 }
 
@@ -754,6 +808,64 @@ async function hydrateAlerts(key) {
   </tr>
 `;
   }
+}
+/* =========================================================
+   Analytics UI
+========================================================= */
+async function hydrateAnalytics(key) {
+  const el = qs("#tab-analytics");
+  if (!el) return;
+
+  el.innerHTML = `
+    <div class="empty-state">
+      <div class="empty-title">Analytics loading</div>
+      <div class="empty-text">Fetching calling and meeting analytics…</div>
+    </div>
+  `;
+
+  try {
+    const data = await loadAnalytics(key);
+
+    el.innerHTML = `
+      <div class="kpi-row">
+        <div class="kpi"><div class="muted">Calling Records</div><b>${(data.metrics?.calling || []).length}</b></div>
+        <div class="kpi"><div class="muted">Meetings</div><b>${(data.metrics?.meetings || []).length}</b></div>
+      </div>
+    `;
+  } catch (err) {
+    el.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-title">Analytics unavailable</div>
+        <div class="empty-text">${escapeHtml(err.message)}</div>
+      </div>
+    `;
+  }
+}
+async function hydratePstn(key) {
+  const el = qs("#tab-pstn");
+  if (!el) return;
+
+  el.innerHTML = `
+    <div class="empty-state">
+      <div class="empty-title">PSTN data not yet configured</div>
+      <div class="empty-text">
+        PSTN trunks, sites, and utilization will appear here once enabled.
+      </div>
+    </div>
+  `;
+}
+async function hydrateCdr(key) {
+  const el = qs("#tab-cdr");
+  if (!el) return;
+
+  el.innerHTML = `
+    <div class="empty-state">
+      <div class="empty-title">Call Detail Records</div>
+      <div class="empty-text">
+        No call records available for the selected period.
+      </div>
+    </div>
+  `;
 }
 
 /* =========================================================
