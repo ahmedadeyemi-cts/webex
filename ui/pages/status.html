@@ -10,10 +10,11 @@
       --ok: #16a34a;
       --warn: #f59e0b;
       --err: #dc2626;
-      --bg: #0f172a;
+      --bg: #0b1220;
       --card: #020617;
       --muted: #94a3b8;
       --border: #1e293b;
+      --accent: #38bdf8;
     }
 
     * { box-sizing: border-box; }
@@ -21,7 +22,7 @@
     body {
       margin: 0;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      background: var(--bg);
+      background: linear-gradient(180deg, #0b1220, #020617);
       color: #e5e7eb;
     }
 
@@ -38,9 +39,35 @@
 
     main {
       padding: 24px;
-      max-width: 1100px;
+      max-width: 1200px;
       margin: auto;
     }
+
+    /* ---------- Controls ---------- */
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .toggle {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: #e5e7eb;
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .toggle.active {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ---------- Summary ---------- */
 
     .grid {
       display: grid;
@@ -49,10 +76,11 @@
     }
 
     .card {
-      background: var(--card);
+      background: linear-gradient(180deg, #020617, #020617cc);
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: 12px;
       padding: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
     }
 
     .service {
@@ -84,6 +112,35 @@
       line-height: 1.4;
     }
 
+    /* ---------- Iframe ---------- */
+
+    .iframe-wrap {
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      height: 80vh;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #fff;
+    }
+
+    /* ---------- Visibility ---------- */
+
+    .hidden { display: none; }
+
+    /* ---------- Mobile ---------- */
+
+    @media (max-width: 768px) {
+      .iframe-wrap {
+        height: 65vh;
+      }
+    }
+
     footer {
       text-align: center;
       padding: 24px;
@@ -99,15 +156,54 @@
 </header>
 
 <main>
-  <div id="grid" class="grid"></div>
+
+  <div class="controls">
+    <button id="btnSummary" class="toggle active">Summary</button>
+    <button id="btnFull" class="toggle">Full Webex Status</button>
+  </div>
+
+  <!-- SUMMARY VIEW -->
+  <section id="summaryView">
+    <div id="grid" class="grid"></div>
+  </section>
+
+  <!-- FULL STATUS VIEW -->
+  <section id="fullView" class="hidden">
+    <div class="iframe-wrap">
+      <iframe
+        src="https://status.webex.com"
+        loading="lazy"
+        sandbox="allow-scripts allow-same-origin allow-forms"
+        referrerpolicy="no-referrer"
+      ></iframe>
+    </div>
+  </section>
+
 </main>
 
 <footer>
-  Status refreshed automatically
+  Status refreshed automatically • Official data from Webex
 </footer>
 
 <script>
   const grid = document.getElementById("grid");
+  const summaryView = document.getElementById("summaryView");
+  const fullView = document.getElementById("fullView");
+
+  const btnSummary = document.getElementById("btnSummary");
+  const btnFull = document.getElementById("btnFull");
+
+  function setView(view) {
+    const isSummary = view === "summary";
+    summaryView.classList.toggle("hidden", !isSummary);
+    fullView.classList.toggle("hidden", isSummary);
+
+    btnSummary.classList.toggle("active", isSummary);
+    btnFull.classList.toggle("active", !isSummary);
+  }
+
+  btnSummary.onclick = () => setView("summary");
+  btnFull.onclick = () => setView("full");
 
   function statusClass(state) {
     if (!state) return "warn";
@@ -117,27 +213,21 @@
   }
 
   function label(state) {
-    return state
-      ? state.charAt(0).toUpperCase() + state.slice(1)
-      : "Unknown";
+    return state ? state.charAt(0).toUpperCase() + state.slice(1) : "Unknown";
   }
 
   async function loadStatus() {
     try {
       const res = await fetch("/api/status", { cache: "no-store" });
+      const ct = res.headers.get("content-type") || "";
 
-      const contentType = res.headers.get("content-type") || "";
-      if (!contentType.includes("application/json")) {
-        throw new Error("API returned non-JSON response");
+      if (!ct.includes("application/json")) {
+        throw new Error("Non-JSON response from status API");
       }
 
       const json = await res.json();
       grid.innerHTML = "";
 
-      /* -------------------------------
-         Case 1: API reachable but limited
-         (WAF / bot protection / HTML upstream)
-      -------------------------------- */
       if (!json.ok) {
         grid.innerHTML = `
           <div class="card">
@@ -147,16 +237,13 @@
               Limited visibility
             </div>
             <div class="meta">
-              ${json.error || "Upstream status provider returned non-JSON content."}
+              ${json.error || "Upstream status provider blocked automated access."}
             </div>
           </div>
         `;
         return;
       }
 
-      /* -------------------------------
-         Case 2: Normal operational data
-      -------------------------------- */
       const services = json.services || [];
 
       if (!services.length) {
@@ -167,9 +254,6 @@
               <span class="dot warn"></span>
               No component data available
             </div>
-            <div class="meta">
-              Status API returned no components.
-            </div>
           </div>
         `;
         return;
@@ -177,10 +261,8 @@
 
       services.forEach(svc => {
         const state = svc.status || svc.state;
-
         const card = document.createElement("div");
         card.className = "card";
-
         card.innerHTML = `
           <div class="service">${svc.name || "Unknown Service"}</div>
           <div class="status">
@@ -189,12 +271,9 @@
           </div>
           <div class="meta">
             ${svc.message || ""}
-            ${svc.lastChecked
-              ? `<br>Checked: ${new Date(svc.lastChecked).toLocaleString()}`
-              : ""}
+            ${svc.lastChecked ? `<br>Checked: ${new Date(svc.lastChecked).toLocaleString()}` : ""}
           </div>
         `;
-
         grid.appendChild(card);
       });
 
@@ -204,11 +283,9 @@
           <div class="service">Status Error</div>
           <div class="status">
             <span class="dot err"></span>
-            Unable to load status
+            Unable to load summary
           </div>
-          <div class="meta">
-            ${err.message}
-          </div>
+          <div class="meta">${err.message}</div>
         </div>
       `;
       console.error("[status]", err);
@@ -217,6 +294,11 @@
 
   loadStatus();
   setInterval(loadStatus, 60_000);
+
+  /* Mobile default: summary only */
+  if (window.innerWidth < 768) {
+    setView("summary");
+  }
 </script>
 
 </body>
