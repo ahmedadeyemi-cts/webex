@@ -812,25 +812,76 @@ async function hydrateAlerts(key) {
 /* =========================================================
    Analytics UI
 ========================================================= */
+/* =========================================================
+   Analytics UI (Calling + Meetings + Insights)
+========================================================= */
 async function hydrateAnalytics(key) {
   const el = qs("#tab-analytics");
   if (!el) return;
 
   el.innerHTML = `
     <div class="empty-state">
-      <div class="empty-title">Analytics loading</div>
-      <div class="empty-text">Fetching calling and meeting analytics…</div>
+      <div class="empty-title">Loading analytics</div>
+      <div class="empty-text">Fetching calling and meeting KPIs…</div>
     </div>
   `;
 
   try {
     const data = await loadAnalytics(key);
+    const calling = data.kpis?.calling || {};
+    const meetings = data.kpis?.meetings || {};
+    const insights = data.insights || [];
 
     el.innerHTML = `
       <div class="kpi-row">
-        <div class="kpi"><div class="muted">Calling Records</div><b>${(data.metrics?.calling || []).length}</b></div>
-        <div class="kpi"><div class="muted">Meetings</div><b>${(data.metrics?.meetings || []).length}</b></div>
+        <div class="kpi">
+          <div class="muted">Total Calls</div>
+          <b>${calling.totalCalls ?? "—"}</b>
+        </div>
+        <div class="kpi">
+          <div class="muted">Call Fail %</div>
+          <b>${calling.failedPct ?? 0}%</b>
+        </div>
+        <div class="kpi">
+          <div class="muted">PSTN Usage</div>
+          <b>${calling.pstnPct ?? 0}%</b>
+        </div>
+        <div class="kpi">
+          <div class="muted">Peak Hour</div>
+          <b>${calling.peakHour ?? "—"}</b>
+        </div>
       </div>
+
+      <div class="kpi-row">
+        <div class="kpi">
+          <div class="muted">Meetings</div>
+          <b>${meetings.totalMeetings ?? "—"}</b>
+        </div>
+        <div class="kpi">
+          <div class="muted">Join Failure %</div>
+          <b>${meetings.joinFailurePct ?? 0}%</b>
+        </div>
+        <div class="kpi">
+          <div class="muted">Avg Participants</div>
+          <b>${meetings.avgParticipants ?? "—"}</b>
+        </div>
+      </div>
+
+      ${insights.length ? `
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">Insights</div>
+          ${insights.map(i => `
+            <div class="banner banner-${i.level}">
+              <b>${escapeHtml(i.title)}</b><br/>
+              <span class="muted">${escapeHtml(i.message)}</span>
+            </div>
+          `).join("")}
+        </div>
+      ` : `
+        <div class="muted" style="margin-top:12px;">
+          No risk insights detected for this period.
+        </div>
+      `}
     `;
   } catch (err) {
     el.innerHTML = `
@@ -841,32 +892,147 @@ async function hydrateAnalytics(key) {
     `;
   }
 }
+
+/* =========================================================
+   PSTN UI (Trunks + Sites)
+========================================================= */
 async function hydratePstn(key) {
   const el = qs("#tab-pstn");
   if (!el) return;
 
   el.innerHTML = `
     <div class="empty-state">
-      <div class="empty-title">PSTN data not yet configured</div>
-      <div class="empty-text">
-        PSTN trunks, sites, and utilization will appear here once enabled.
-      </div>
+      <div class="empty-title">Loading PSTN data</div>
+      <div class="empty-text">Fetching trunks and site configuration…</div>
     </div>
   `;
+
+  try {
+    const data = await loadPstn(key);
+    const trunks = data.trunks || [];
+    const sites = data.sites || [];
+
+    el.innerHTML = `
+      <div class="card">
+        <div class="card-title">PSTN Trunks</div>
+        ${trunks.length ? `
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Active</th>
+                  <th>Max</th>
+                  <th>Utilization</th>
+                  <th>Health</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${trunks.map(t => `
+                  <tr>
+                    <td>${escapeHtml(t.name)}</td>
+                    <td class="mono">${t.activeCalls}</td>
+                    <td class="mono">${t.maxCalls}</td>
+                    <td class="mono">${t.utilizationPct}%</td>
+                    <td>${healthBadge(t.health)}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        ` : `<div class="muted">No PSTN trunks configured</div>`}
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <div class="card-title">PSTN Sites</div>
+        ${sites.length ? `
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Site</th>
+                  <th>PSTN Type</th>
+                  <th>Redundant</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${sites.map(s => `
+                  <tr>
+                    <td>${escapeHtml(s.name)}</td>
+                    <td class="mono">${escapeHtml(s.pstnType)}</td>
+                    <td>${s.redundancy ? "Yes" : "No"}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        ` : `<div class="muted">No PSTN-enabled sites found</div>`}
+      </div>
+    `;
+  } catch (err) {
+    el.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-title">PSTN unavailable</div>
+        <div class="empty-text">${escapeHtml(err.message)}</div>
+      </div>
+    `;
+  }
 }
+/* =========================================================
+   CDR UI (Call Detail Summary)
+========================================================= */
 async function hydrateCdr(key) {
   const el = qs("#tab-cdr");
   if (!el) return;
 
   el.innerHTML = `
     <div class="empty-state">
-      <div class="empty-title">Call Detail Records</div>
-      <div class="empty-text">
-        No call records available for the selected period.
-      </div>
+      <div class="empty-title">Loading call records</div>
+      <div class="empty-text">Analyzing recent call activity…</div>
     </div>
   `;
+
+  try {
+    const data = await loadCdr(key);
+    const m = data.metrics || {};
+
+    el.innerHTML = `
+      <div class="kpi-row">
+        <div class="kpi">
+          <div class="muted">Total Calls</div>
+          <b>${m.totalCalls ?? "—"}</b>
+        </div>
+        <div class="kpi">
+          <div class="muted">Dropped Call %</div>
+          <b>${m.droppedCallPct ?? 0}%</b>
+        </div>
+        <div class="kpi">
+          <div class="muted">Avg Duration</div>
+          <b>${m.avgDurationSeconds ?? 0}s</b>
+        </div>
+        <div class="kpi">
+          <div class="muted">Peak Hour</div>
+          <b>${m.peakHour ?? "—"}</b>
+        </div>
+      </div>
+
+      <div class="muted" style="margin-top:12px;">
+        Source: Webex Call Detail Records (last 7 days)
+      </div>
+    `;
+  } catch (err) {
+    el.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-title">CDR unavailable</div>
+        <div class="empty-text">
+          ${escapeHtml(err.message)}<br/>
+          Ensure CDR access is enabled for this org.
+        </div>
+      </div>
+    `;
+  }
 }
+
 
 /* =========================================================
    Executive page
