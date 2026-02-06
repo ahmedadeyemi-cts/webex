@@ -847,7 +847,7 @@ async function hydrateAnalytics(key) {
 
   try {
     const data = await loadAnalytics(key);
-
+    console.log("Analytics payload", data);
     const calling = data.kpis?.calling || {};
     const meetings = data.kpis?.meetings || {};
     const insights = Array.isArray(data.insights) ? data.insights : [];
