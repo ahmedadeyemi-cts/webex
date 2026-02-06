@@ -309,18 +309,35 @@ document.addEventListener("DOMContentLoaded", () => {
    Customers page (simple)
 ========================================================= */
 async function initCustomersPage() {
+  const elTotal = qs("#customers-total");
+  const elGreen = qs("#customers-green");
+  const elYellow = qs("#customers-yellow");
+  const elRed = qs("#customers-red");
+
   const tbody = qs("#customers-table tbody");
   tbody.innerHTML = `<tr><td colspan="5" class="muted">Loading…</td></tr>`;
 
   try {
     const data = await loadCustomers();
-    tbody.innerHTML = "";
+    const customers = data.customers || [];
 
-    for (const c of data.customers || []) {
+    let green = 0, yellow = 0, red = 0;
+
+    for (const c of customers) {
       const health = await loadCustomerHealth(c.key);
-      const history = await loadHealthHistory(c.key);
+      const overall = health.overall || health.health?.overall || "unknown";
 
-      const tr = document.createElement("tr");
+      if (overall === "green") green++;
+      else if (overall === "yellow") yellow++;
+      else if (overall === "red") red++;
+    }
+
+    elTotal && (elTotal.textContent = customers.length);
+    elGreen && (elGreen.textContent = green);
+    elYellow && (elYellow.textContent = yellow);
+    elRed && (elRed.textContent = red);
+
+    // existing table render continues below…
       tr.innerHTML = `
         <td><a href="/customer/${encodeURIComponent(c.key)}">${escapeHtml(c.name)}</a></td>
         <td class="mono">${escapeHtml(c.orgId || "—")}</td>
