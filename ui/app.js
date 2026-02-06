@@ -306,53 +306,102 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /* =========================================================
-   Customers page (simple)
+   Customers page (table + KPI summary)
 ========================================================= */
 async function initCustomersPage() {
+  const tbody = qs("#customers-table tbody");
+
+  // KPI elements (top summary cards)
   const elTotal = qs("#customers-total");
   const elGreen = qs("#customers-green");
   const elYellow = qs("#customers-yellow");
   const elRed = qs("#customers-red");
 
-  const tbody = qs("#customers-table tbody");
-  tbody.innerHTML = `<tr><td colspan="5" class="muted">Loading…</td></tr>`;
+  if (tbody) {
+    tbody.innerHTML = `<tr><td colspan="5" class="muted">Loading…</td></tr>`;
+  }
+
+  // Initialize KPI placeholders
+  elTotal && (elTotal.textContent = "—");
+  elGreen && (elGreen.textContent = "—");
+  elYellow && (elYellow.textContent = "—");
+  elRed && (elRed.textContent = "—");
 
   try {
     const data = await loadCustomers();
-    const customers = data.customers || [];
+    const customers = Array.isArray(data.customers) ? data.customers : [];
 
-    let green = 0, yellow = 0, red = 0;
+    let green = 0;
+    let yellow = 0;
+    let red = 0;
+
+    if (tbody) tbody.innerHTML = "";
 
     for (const c of customers) {
       const health = await loadCustomerHealth(c.key);
-      const overall = health.overall || health.health?.overall || "unknown";
+      const history = await loadHealthHistory(c.key);
+
+      const h = health.health || health;
+      const overall = health.overall || h.overall || "unknown";
 
       if (overall === "green") green++;
       else if (overall === "yellow") yellow++;
       else if (overall === "red") red++;
+
+      if (tbody) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>
+            <a href="/customer/${encodeURIComponent(c.key)}">
+              ${escapeHtml(c.name)}
+            </a>
+          </td>
+          <td class="mono">${escapeHtml(c.orgId || "—")}</td>
+          <td>${healthBadge(overall)}</td>
+          <td>${trendDots(history.history || [])}</td>
+          <td class="muted">
+            ${health.evaluatedAt
+              ? new Date(health.evaluatedAt).toLocaleString()
+              : "—"}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
     }
 
-    elTotal && (elTotal.textContent = customers.length);
-    elGreen && (elGreen.textContent = green);
-    elYellow && (elYellow.textContent = yellow);
-    elRed && (elRed.textContent = red);
+    // Populate KPI cards
+    elTotal && (elTotal.textContent = customers.length.toLocaleString());
+    elGreen && (elGreen.textContent = green.toLocaleString());
+    elYellow && (elYellow.textContent = yellow.toLocaleString());
+    elRed && (elRed.textContent = red.toLocaleString());
 
-    // existing table render continues below…
-      tr.innerHTML = `
-        <td><a href="/customer/${encodeURIComponent(c.key)}">${escapeHtml(c.name)}</a></td>
-        <td class="mono">${escapeHtml(c.orgId || "—")}</td>
-        <td>${healthBadge(health.overall || health.health?.overall)}</td>
-        <td>${trendDots(history.history)}</td>
-        <td class="muted">${health.evaluatedAt ? new Date(health.evaluatedAt).toLocaleString() : "—"}</td>
+    // Empty-state handling
+    if (tbody && customers.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5" class="muted">No customers found.</td>
+        </tr>
       `;
-      tbody.appendChild(tr);
     }
+
   } catch (err) {
-    tbody.innerHTML = `
-      <tr><td colspan="5" class="health-red">Failed to load customers: ${escapeHtml(err.message)}</td></tr>
-    `;
+    console.error("Failed to load customers page:", err);
+
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5" class="health-red">
+            Failed to load customers: ${escapeHtml(err.message)}
+          </td>
+        </tr>
+      `;
+    }
+
+    elTotal && (elTotal.textContent = "Error");
+    elGreen && (elGreen.textContent = "—");
+    elYellow && (elYellow.textContent = "—");
+    elRed && (elRed.textContent = "—");
   }
-}
 }
 /* =========================================================
    Dashboard page (KPIs)
