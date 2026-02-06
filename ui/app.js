@@ -921,8 +921,6 @@ const insights = Array.isArray(data.insights)
   ? data.insights
   : [];
 
-    const insights = Array.isArray(data.insights) ? data.insights : [];
-
   el.innerHTML = `
   <div class="kpi-row">
     <div class="kpi">
