@@ -217,13 +217,14 @@ const loadAnalytics = (key) =>
   });
 
 /**
- * NEW: PSTN health / trunks / sites
+ * PSTN Health (locations + emergency calling + main numbers)
  */
-const loadPstn = (key) =>
-  apiFetch(`/customer/${encodeURIComponent(key)}/pstn`, {
-    cacheKey: `pstn:${key}`,
+const loadPstnHealth = (key) =>
+  apiFetch(`/customer/${encodeURIComponent(key)}/pstn-health`, {
+    cacheKey: `pstn-health:${key}`,
     ttl: 2 * 60 * 1000
   });
+
 
 /**
  * NEW: Call Detail Records
@@ -1093,95 +1094,75 @@ const insights = Array.isArray(data.insights)
    PSTN UI (Trunks + Sites)
 ========================================================= */
 async function hydratePstn(key) {
+async function hydratePstn(key) {
   const el = qs("#tab-pstn");
   if (!el) return;
 
   el.innerHTML = `
     <div class="empty-state">
-      <div class="empty-title">Loading PSTN data</div>
-      <div class="empty-text">Fetching trunks and site configuration…</div>
+      <div class="empty-title">Loading PSTN health</div>
+      <div class="empty-text">Fetching location and emergency calling status…</div>
     </div>
   `;
 
   try {
-    const data = await loadPstn(key);
-    const trunks = data.trunks || [];
-    const sites = data.sites || [];
+    const data = await loadPstnHealth(key);
+    console.log("PSTN Health payload", data);
+
+    const locations = data.locations || [];
 
     el.innerHTML = `
       <div class="card">
-        <div class="card-title">PSTN Trunks</div>
-        ${trunks.length ? `
+        <div class="card-title">Location Troubleshooting</div>
+
+        ${locations.length ? `
           <div class="table-wrap">
             <table class="table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Active</th>
-                  <th>Max</th>
-                  <th>Utilization</th>
-                  <th>Health</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${trunks.map(t => `
-                  <tr>
-                    <td>${escapeHtml(t.name)}</td>
-                    <td class="mono">${t.activeCalls}</td>
-                    <td class="mono">${t.maxCalls}</td>
-                    <td>
-  ${renderTrendBars(
-    [{
-      value: t.utilizationPct,
-      label: "Utilization",
-      level:
-        t.utilizationPct > 85 ? "red" :
-        t.utilizationPct > 65 ? "yellow" :
-        "green"
-    }],
-    { compact: true }
-  )}
-</td>
-
-                    <td>${healthBadge(t.health)}</td>
-                  </tr>
-                `).join("")}
-              </tbody>
-            </table>
-          </div>
-        ` : `<div class="muted">No PSTN trunks configured</div>`}
-      </div>
-
-      <div class="card" style="margin-top:16px;">
-        <div class="card-title">PSTN Sites</div>
-        ${sites.length ? `
-          <div class="table-wrap">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>Site</th>
+                  <th>Location</th>
                   <th>PSTN Type</th>
-                  <th>Redundant</th>
+                  <th>Main Number</th>
+                  <th>E911</th>
+                  <th>Status</th>
+                  <th>Notes</th>
                 </tr>
               </thead>
               <tbody>
-                ${sites.map(s => `
+                ${locations.map(loc => `
                   <tr>
-                    <td>${escapeHtml(s.name)}</td>
-                    <td class="mono">${escapeHtml(s.pstnType)}</td>
-                    <td>${s.redundancy ? "Yes" : "No"}</td>
+                    <td>${escapeHtml(loc.name)}</td>
+                    <td class="mono">${escapeHtml(loc.pstn.type)}</td>
+                    <td class="mono">${loc.pstn.mainNumber || "—"}</td>
+                    <td>${loc.pstn.enhanced911 ? "Yes" : "No"}</td>
+                    <td>
+                      <span class="badge ${
+                        loc.pstn.status === "healthy"
+                          ? "health-green"
+                          : loc.pstn.status === "warning"
+                          ? "health-yellow"
+                          : "health-red"
+                      }">
+                        ${loc.pstn.status.toUpperCase()}
+                      </span>
+                    </td>
+                    <td class="muted small">
+                      ${(loc.pstn.warnings || []).join(", ") || "—"}
+                    </td>
                   </tr>
                 `).join("")}
               </tbody>
             </table>
           </div>
-        ` : `<div class="muted">No PSTN-enabled sites found</div>`}
+        ` : `
+          <div class="muted">No PSTN-enabled locations found</div>
+        `}
       </div>
     `;
   } catch (err) {
     el.innerHTML = `
       <div class="empty-state">
-        <div class="empty-title">PSTN unavailable</div>
+        <div class="empty-title">PSTN health unavailable</div>
         <div class="empty-text">${escapeHtml(err.message)}</div>
       </div>
     `;
