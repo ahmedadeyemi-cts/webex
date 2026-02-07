@@ -663,7 +663,10 @@ function renderDeficientSkus(rows) {
 
   tbody.innerHTML = "";
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="3" class="muted">No deficiencies</td></tr>`;
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="4" class="muted">No deficiencies</td>
+      </tr>`;
     return;
   }
 
@@ -671,8 +674,21 @@ function renderDeficientSkus(rows) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${escapeHtml(r.sku)}</td>
-      <td class="mono">${Number(r.available ?? 0)}</td>
-      <td class="mono">${Number(r.threshold ?? 0)}</td>
+
+      <td class="mono">
+        ${Number(r.available ?? 0)}
+      </td>
+
+      <td class="mono">
+        ${Number(r.thresholdCount ?? 0)}
+        <span class="muted small">
+          (${Number(r.thresholdPct ?? 0)}%)
+        </span>
+      </td>
+
+      <td class="mono">
+        <strong>${Number(r.licensesNeeded ?? 0)}</strong>
+      </td>
     `;
     tbody.appendChild(tr);
   }
