@@ -993,80 +993,48 @@ async function hydrateAlerts(key) {
 /* =========================================================
    Analytics UI
 ========================================================= */
-/* =========================================================
-   Analytics UI (CALLING ONLY)
-========================================================= */
 async function hydrateAnalytics(key) {
   const el = qs("#tab-analytics");
   if (!el) return;
 
-  el.innerHTML = `<div class="muted">Loading analytics…</div>`;
+  el.innerHTML = `<div class="muted">Analyzing calling performance…</div>`;
 
   try {
     const data = await loadAnalytics(key);
     console.log("Analytics payload", data);
 
-    const rawCalling = data.kpis?.calling || {};
-
-    const calling = {
-      totalCalls:
-        rawCalling.totalCalls ??
-        rawCalling.callCount ??
-        0,
-
-      failedCalls:
-        rawCalling.failedCalls ??
-        rawCalling.failedCallCount ??
-        0,
-
-      failedPct:
-        rawCalling.failedCallRate != null
-          ? Math.round(rawCalling.failedCallRate * 100)
-          : rawCalling.callCount
-            ? Math.round((rawCalling.failedCalls / rawCalling.callCount) * 100)
-            : 0,
-
-      pstnCalls: rawCalling.pstnCalls ?? 0,
-
-      pstnPct:
-        rawCalling.callCount
-          ? Math.round((rawCalling.pstnCalls / rawCalling.callCount) * 100)
-          : 0,
-
-      avgDurationSeconds:
-        rawCalling.avgDurationSeconds ??
-        rawCalling.averageDuration ??
-        0,
-
-      peakConcurrentCalls:
-        rawCalling.peakConcurrentCalls ??
-        rawCalling.peakCalls ??
-        "—",
-
-      hourly:
-        Array.isArray(rawCalling.hourly)
-          ? rawCalling.hourly
-          : []
-    };
+    const c = data.kpis.calling;
+    const causes = data.failureCauses || [];
 
     el.innerHTML = `
       <div class="kpi-row">
         <div class="kpi">
           <div class="muted">Total Calls</div>
-          <b>${calling.totalCalls}</b>
+          <b>${c.totalCalls}</b>
         </div>
         <div class="kpi">
           <div class="muted">Failed Calls</div>
-          <b>${calling.failedCalls}</b>
+          <b>${c.failedCalls}</b>
         </div>
         <div class="kpi">
           <div class="muted">Failure %</div>
-          <b>${calling.failedPct}%</b>
+          <b>${c.failedPct}%</b>
         </div>
         <div class="kpi">
           <div class="muted">PSTN Usage</div>
-          <b>${calling.pstnPct}%</b>
+          <b>${c.pstnPct}%</b>
         </div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <div class="card-title">Failure Cause Analysis</div>
+
+        ${causes.map(x => `
+          <div class="banner banner-${x.level}">
+            <b>${x.title}</b><br/>
+            <span class="muted">${x.explanation}</span>
+          </div>
+        `).join("")}
       </div>
 
       <div class="card" style="margin-top:16px;">
@@ -1076,21 +1044,20 @@ async function hydrateAnalytics(key) {
         </div>
 
         ${
-          calling.hourly.length
+          c.hourly.length
             ? renderTrendBars(
-                calling.hourly.map(h => ({
-                  value: h.calls ?? 0,
-                  label: h.hour ?? "—",
-                  level: "green"
+                c.hourly.map(h => ({
+                  value: h.calls,
+                  label: h.hour,
+                  level: h.failed >= 3 ? "red" : "green"
                 }))
               )
             : `<div class="muted">No hourly data available</div>`
         }
       </div>
     `;
-  } catch (err) {
-    console.error("Analytics hydrate failed:", err);
 
+  } catch (err) {
     el.innerHTML = `
       <div class="empty-state">
         <div class="empty-title">Analytics unavailable</div>
@@ -1099,7 +1066,6 @@ async function hydrateAnalytics(key) {
     `;
   }
 }
-
 
 /* =========================================================
    PSTN UI (Location Troubleshooting)
