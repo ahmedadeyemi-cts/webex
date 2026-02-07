@@ -853,53 +853,35 @@ function applyDeviceFilters() {
   }
 }
 function normalizePstnLocation(loc, customer) {
-  // Webex Control Hub nesting
-  const calling = loc.calling || {};
-  const pstn = calling.pstn || {};
-  const emergency = calling.emergencyCalling || {};
+  const pstn = loc.pstn || {};
 
-  const pstnType =
-    pstn.type ||
-    pstn.provider ||
-    "Unknown";
+  const pstnType = pstn.type || "unknown";
+  const mainNumber = pstn.mainNumber || "—";
 
-  const mainNumber =
-    pstn.mainNumber ||
-    calling.mainNumber ||
-    "—";
+  const e911Enabled = pstn.e911?.enabled;
+  const redundancy = pstn.redundancy || "none";
 
-  const e911Enabled =
-    emergency.enabled === true ||
-    emergency.routing === "on";
-
-  const redundancy =
-    pstn.redundancy ||
-    pstn.secondaryProvider
-      ? "dual"
-      : pstnType !== "Unknown"
-        ? "single"
-        : "none";
-
-  // E911 badge
-  const e911Risk = e911Enabled
-    ? { level: "green", label: "Enabled" }
-    : { level: "red", label: "Missing" };
+  // E911 risk badge
+  const e911Risk =
+    e911Enabled === true
+      ? { level: "green", label: "Configured" }
+      : e911Enabled === false
+      ? { level: "red", label: "Missing" }
+      : { level: "yellow", label: "Unknown" };
 
   // Redundancy badge
   const redundancyScore =
     redundancy === "dual"
       ? { level: "green", label: "Redundant" }
       : redundancy === "single"
-      ? { level: "yellow", label: "Single Path" }
+      ? { level: "yellow", label: "Single" }
       : { level: "red", label: "None" };
 
   // Overall status
   const status =
-    e911Enabled && redundancy !== "none"
-      ? "green"
-      : e911Enabled
-      ? "yellow"
-      : "red";
+    e911Enabled === true && redundancy !== "none"
+      ? "ok"
+      : "error";
 
   return {
     name: loc.name || "Unknown location",
@@ -908,14 +890,10 @@ function normalizePstnLocation(loc, customer) {
     e911Risk,
     redundancyScore,
     status,
-    notes:
-      emergency.warning ||
-      pstn.warning ||
-      "—",
-    controlHubUrl:
-      customer?.orgId && loc.id
-        ? `https://admin.webex.com/locations/${loc.id}`
-        : "https://admin.webex.com/locations"
+    notes: (pstn.issues || []).join(", ") || "—",
+    controlHubUrl: customer?.orgId
+      ? `https://admin.webex.com/locations`
+      : "#"
   };
 }
 
