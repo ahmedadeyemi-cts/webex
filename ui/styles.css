@@ -355,3 +355,46 @@ button:hover,
   fill: var(--surface);
   stroke-width: 2;
 }
+/* ===============================
+   License Deficiency Severity
+=============================== */
+
+.license-needed {
+  display: inline-block;
+  min-width: 42px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.severity-ok {
+  background: #e6f4ea;
+  color: #137333;
+}
+
+.severity-low {
+  background: #fff7e6;
+  color: #8a5a00;
+}
+
+.severity-medium {
+  background: #ffe8d9;
+  color: #b54708;
+}
+
+.severity-critical {
+  background: #fdecea;
+  color: #b42318;
+}
+#deficient-table th,
+#deficient-table td {
+  white-space: nowrap;
+}
+
+#deficient-table th:last-child,
+#deficient-table td:last-child {
+  text-align: center;
+}
+
