@@ -1094,7 +1094,6 @@ const insights = Array.isArray(data.insights)
    PSTN UI (Trunks + Sites)
 ========================================================= */
 async function hydratePstn(key) {
-async function hydratePstn(key) {
   const el = qs("#tab-pstn");
   if (!el) return;
 
