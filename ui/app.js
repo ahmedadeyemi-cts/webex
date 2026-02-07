@@ -1079,7 +1079,6 @@ const insights = Array.isArray(data.insights)
       `
   }
 `;
-
   } catch (err) {
     el.innerHTML = `
       <div class="empty-state">
