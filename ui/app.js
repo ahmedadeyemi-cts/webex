@@ -852,7 +852,20 @@ function applyDeviceFilters() {
     tbody.appendChild(tr);
   }
 }
+function normalizePstnLocation(loc) {
+  const pstn = loc.pstn || {};
 
+  return {
+    name: loc.name || "—",
+    pstnType: pstn.type || "unknown",
+    mainNumber: pstn.mainNumber || "—",
+    e911: pstn.e911?.enabled === true,
+    status: pstn.type ? "ok" : "error",
+    notes: pstn.type
+      ? "PSTN configuration retrieved"
+      : "PSTN not configured for location"
+  };
+}
 /* =========================================================
    Alerts UI (audit)
 ========================================================= */
@@ -1107,7 +1120,7 @@ async function hydratePstn(key) {
     const data = await loadPstnHealth(key);
     console.log("PSTN Health payload", data);
 
-    const locations = data.locations || [];
+   const locations = (data.locations || []).map(normalizePstnLocation);
 
     el.innerHTML = `
       <div class="card">
