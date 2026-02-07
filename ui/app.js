@@ -852,20 +852,62 @@ function applyDeviceFilters() {
     tbody.appendChild(tr);
   }
 }
-function normalizePstnLocation(loc) {
-  const pstn = loc.pstn || {};
+function normalizePstnLocation(loc, customer) {
+  const pstnType = loc.pstnType || loc.type || "unknown";
+  const mainNumber = loc.mainNumber || "—";
+  const e911 = Boolean(loc.e911Enabled);
+  const redundancy = loc.redundancy || "none";
+
+  const e911Risk = e911
+    ? { level: "green", label: "Enabled" }
+    : { level: "red", label: "Missing" };
+
+  const redundancyScore =
+    redundancy === "dual"
+      ? { level: "green", label: "Redundant" }
+      : redundancy === "single"
+      ? { level: "yellow", label: "Single" }
+      : { level: "red", label: "None" };
+
+  const status =
+    e911 && redundancy !== "none"
+      ? "ok"
+      : "error";
 
   return {
-    name: loc.name || "—",
-    pstnType: pstn.type || "unknown",
-    mainNumber: pstn.mainNumber || "—",
-    e911: pstn.e911?.enabled === true,
-    status: pstn.type ? "ok" : "error",
-    notes: pstn.type
-      ? "PSTN configuration retrieved"
-      : "PSTN not configured for location"
+    name: loc.name || "Unknown location",
+    pstnType,
+    mainNumber,
+    e911Risk,
+    redundancyScore,
+    status,
+    notes: (loc.issues || []).join(", ") || "—",
+    controlHubUrl: customer?.orgId
+      ? `https://admin.webex.com/locations`
+      : "#"
   };
 }
+
+
+function e911Risk(e911Enabled) {
+  if (e911Enabled === true) {
+    return { level: "green", label: "Configured" };
+  }
+  if (e911Enabled === false) {
+    return { level: "red", label: "Missing E911" };
+  }
+  return { level: "yellow", label: "Unknown" };
+}
+function scoreRedundancy(pstn = {}) {
+  if (pstn.primary && pstn.secondary) {
+    return { score: 100, label: "Full Redundancy", level: "green" };
+  }
+  if (pstn.primary) {
+    return { score: 50, label: "Single Path", level: "yellow" };
+  }
+  return { score: 0, label: "No PSTN", level: "red" };
+}
+
 /* =========================================================
    Alerts UI (audit)
 ========================================================= */
@@ -1103,7 +1145,7 @@ const insights = Array.isArray(data.insights)
 }
 
 /* =========================================================
-   PSTN UI (Trunks + Sites)
+   PSTN UI (Location Troubleshooting)
 ========================================================= */
 async function hydratePstn(key) {
   const el = qs("#tab-pstn");
@@ -1117,10 +1159,12 @@ async function hydratePstn(key) {
   `;
 
   try {
-    const data = await loadPstnHealth(key);
+    const data = await loadPstn(key);
     console.log("PSTN Health payload", data);
 
-   const locations = (data.locations || []).map(normalizePstnLocation);
+    const locations = (data.locations || []).map(loc =>
+      normalizePstnLocation(loc, data.customer)
+    );
 
     el.innerHTML = `
       <div class="card">
@@ -1135,30 +1179,38 @@ async function hydratePstn(key) {
                   <th>PSTN Type</th>
                   <th>Main Number</th>
                   <th>E911</th>
+                  <th>Redundancy</th>
                   <th>Status</th>
                   <th>Notes</th>
                 </tr>
               </thead>
               <tbody>
-                ${locations.map(loc => `
+                ${locations.map(l => `
                   <tr>
-                    <td>${escapeHtml(loc.name)}</td>
-                    <td class="mono">${escapeHtml(loc.pstn.type)}</td>
-                    <td class="mono">${loc.pstn.mainNumber || "—"}</td>
-                    <td>${loc.pstn.enhanced911 ? "Yes" : "No"}</td>
                     <td>
-                      <span class="badge ${
-                        loc.pstn.status === "healthy"
-                          ? "health-green"
-                          : loc.pstn.status === "warning"
-                          ? "health-yellow"
-                          : "health-red"
-                      }">
-                        ${loc.pstn.status.toUpperCase()}
+                      <a href="${l.controlHubUrl}"
+                         target="_blank"
+                         class="link">
+                        ${escapeHtml(l.name)}
+                      </a>
+                    </td>
+                    <td class="mono">${escapeHtml(l.pstnType)}</td>
+                    <td class="mono">${escapeHtml(l.mainNumber)}</td>
+                    <td>
+                      <span class="badge health-${l.e911Risk.level}">
+                        ${l.e911Risk.label}
                       </span>
                     </td>
+                    <td>
+                      <span class="badge health-${l.redundancyScore.level}">
+                        ${l.redundancyScore.label}
+                      </span>
+                    </td>
+                    <td>
+                      ${healthBadge(l.status === "ok" ? "green" : "red")}
+                    </td>
                     <td class="muted small">
-                      ${(loc.pstn.warnings || []).join(", ") || "—"}
+                      ${escapeHtml(l.notes)}
                     </td>
                   </tr>
                 `).join("")}
