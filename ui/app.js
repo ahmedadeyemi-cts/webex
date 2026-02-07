@@ -1007,28 +1007,55 @@ async function hydrateAnalytics(key) {
 
   const c = data.kpis.calling;
 
-  el.innerHTML = `
-    <div class="grid summary-grid">
-      <div class="card summary">
-        <div class="summary-label">Total Calls</div>
-        <div class="summary-value">${c.totalCalls}</div>
-      </div>
-      <div class="card summary">
-        <div class="summary-label">Avg Duration</div>
-        <div class="summary-value">${c.avgDurationSec}s</div>
-      </div>
-      <div class="card summary">
-        <div class="summary-label">Failed Calls</div>
-        <div class="summary-value">${c.failedPct}%</div>
-      </div>
-      <div class="card summary">
-        <div class="summary-label">PSTN Usage</div>
-        <div class="summary-value">${c.pstnPct}%</div>
-      </div>
+ el.innerHTML = `
+  <div class="grid summary-grid">
+    <div class="card summary">
+      <div class="summary-label">Codec Failures</div>
+      <div class="summary-value">${summary.codec || 0}</div>
     </div>
+    <div class="card summary">
+      <div class="summary-label">PSTN Failures</div>
+      <div class="summary-value">${summary.pstn || 0}</div>
+    </div>
+    <div class="card summary">
+      <div class="summary-label">Routing Failures</div>
+      <div class="summary-value">${summary.routing || 0}</div>
+    </div>
+    <div class="card summary">
+      <div class="summary-label">Network Failures</div>
+      <div class="summary-value">${summary.network || 0}</div>
+    </div>
+  </div>
 
-    ${renderInsights(data.insights)}
-  `;
+  <div class="table-wrap" style="margin-top:16px;">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>From</th>
+          <th>To</th>
+          <th>Duration</th>
+          <th>Result</th>
+          <th>Cause</th>
+          <th>Site</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.records.map(r => `
+          <tr>
+            <td>${new Date(r.startTime).toLocaleString()}</td>
+            <td class="mono">${r.from}</td>
+            <td class="mono">${r.to}</td>
+            <td>${r.durationSec}s</td>
+            <td>${r.failed ? `<span class="health-red">Failed</span>` : `<span class="health-green">OK</span>`}</td>
+            <td class="mono">${r.failureCause || "—"}</td>
+            <td>${r.site}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  </div>
+`;
 }
    /* ============================
    NORMALIZE ANALYTICS KPIs
@@ -1295,6 +1322,8 @@ async function hydrateCdr(key) {
 
   const data = await apiFetch(`/api/customer/${key}/cdr`);
   console.log("CDR payload", data);
+  const summary = data.failureSummary || {};
+
 
   if (!data.records.length) {
     el.innerHTML = `<div class="muted">No CDR records available</div>`;
