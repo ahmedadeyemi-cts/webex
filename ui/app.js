@@ -694,6 +694,21 @@ function renderDeficientSkus(rows) {
     tbody.appendChild(tr);
   }
 }
+function renderInsights(insights = []) {
+  if (!insights.length) return "";
+
+  return `
+    <div class="card" style="margin-top:16px;">
+      <div class="card-title">Insights</div>
+      ${insights.map(i => `
+        <div class="banner ${i.level}">
+          <strong>${i.title}</strong> — ${i.message}
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
 
 function renderLicenses(licenses) {
   const tbody = qs("#licenses-table tbody");
@@ -985,19 +1000,36 @@ async function hydrateAnalytics(key) {
   const el = qs("#tab-analytics");
   if (!el) return;
 
-  el.innerHTML = `
-    <div class="empty-state">
-      <div class="empty-title">Loading analytics</div>
-      <div class="empty-text">Fetching calling and meeting KPIs…</div>
-    </div>
-  `;
+  el.innerHTML = `<div class="muted">Loading analytics…</div>`;
 
-  try {
-    const data = await loadAnalytics(key);
-    console.log("Analytics payload", data);
-    console.log("Analytics payload (full)", data);
-    console.log("Analytics KPIs", data.kpis);
-    console.log("Analytics KPIs keys", Object.keys(data.kpis || {}));
+  const data = await loadAnalytics(key);
+  console.log("Analytics payload", data);
+
+  const c = data.kpis.calling;
+
+  el.innerHTML = `
+    <div class="grid summary-grid">
+      <div class="card summary">
+        <div class="summary-label">Total Calls</div>
+        <div class="summary-value">${c.totalCalls}</div>
+      </div>
+      <div class="card summary">
+        <div class="summary-label">Avg Duration</div>
+        <div class="summary-value">${c.avgDurationSec}s</div>
+      </div>
+      <div class="card summary">
+        <div class="summary-label">Failed Calls</div>
+        <div class="summary-value">${c.failedPct}%</div>
+      </div>
+      <div class="card summary">
+        <div class="summary-label">PSTN Usage</div>
+        <div class="summary-value">${c.pstnPct}%</div>
+      </div>
+    </div>
+
+    ${renderInsights(data.insights)}
+  `;
+}
    /* ============================
    NORMALIZE ANALYTICS KPIs
 ============================ */
@@ -1258,70 +1290,46 @@ async function hydratePstn(key) {
 async function hydrateCdr(key) {
   const el = qs("#tab-cdr");
   if (!el) return;
-el.innerHTML = `
-    <div class="empty-state">
-      <div class="empty-title">Loading CDR</div>
-      <div class="empty-text">Fetching call detail records…</div>
-    </div>
-  `;
 
-  try {
-    const data = await loadCdr(key);
-    const m = data.metrics || data.kpis || {};
+  el.innerHTML = `<div class="muted">Loading call records…</div>`;
+
+  const data = await apiFetch(`/api/customer/${key}/cdr`);
+  console.log("CDR payload", data);
+
+  if (!data.records.length) {
+    el.innerHTML = `<div class="muted">No CDR records available</div>`;
+    return;
+  }
 
   el.innerHTML = `
-  <div class="kpi-row">
-    <div class="kpi">
-      <div class="muted">Total Calls</div>
-      <b>${m.totalCalls ?? "—"}</b>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>From</th>
+            <th>To</th>
+            <th>Duration</th>
+            <th>Result</th>
+            <th>Site</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.records.map(r => `
+            <tr>
+              <td>${new Date(r.startTime).toLocaleString()}</td>
+              <td class="mono">${r.from}</td>
+              <td class="mono">${r.to}</td>
+              <td>${r.durationSec}s</td>
+              <td>${r.result}</td>
+              <td>${r.site}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
     </div>
-    <div class="kpi">
-      <div class="muted">Dropped Call %</div>
-      <b>${m.droppedCallPct ?? 0}%</b>
-    </div>
-    <div class="kpi">
-      <div class="muted">Avg Duration</div>
-      <b>${m.avgDurationSeconds ?? 0}s</b>
-    </div>
-    <div class="kpi">
-      <div class="muted">Peak Hour</div>
-      <b>${m.peakHour ?? "—"}</b>
-    </div>
-  </div>
-
-  <div class="card" style="margin-top:16px;">
-    <div class="card-title">Call Volume Trend (7 Days)</div>
-
-    ${renderTrendBars(
-      (data.trend || []).map(d => ({
-        value: d.totalCalls,
-        label: d.date,
-        level:
-          d.failedPct > 5 ? "red" :
-          d.failedPct > 2 ? "yellow" :
-          "green"
-      }))
-    )}
-  </div>
-
-  <div class="muted small" style="margin-top:12px;">
-    Source: Webex Call Detail Records (last 7 days)
-  </div>
-`;
-
-  } catch (err) {
-    el.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-title">CDR unavailable</div>
-        <div class="empty-text">
-          ${escapeHtml(err.message)}<br/>
-          Ensure CDR access is enabled for this org.
-        </div>
-      </div>
-    `;
-  }
+  `;
 }
-
 
 /* =========================================================
    Executive page
