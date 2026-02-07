@@ -994,7 +994,7 @@ async function hydrateAlerts(key) {
    Analytics UI
 ========================================================= */
 /* =========================================================
-   Analytics UI (Calling + Meetings + Insights)
+   Analytics UI (CALLING ONLY)
 ========================================================= */
 async function hydrateAnalytics(key) {
   const el = qs("#tab-analytics");
@@ -1002,61 +1002,104 @@ async function hydrateAnalytics(key) {
 
   el.innerHTML = `<div class="muted">Loading analytics…</div>`;
 
-  const data = await loadAnalytics(key);
-  console.log("Analytics payload", data);
+  try {
+    const data = await loadAnalytics(key);
+    console.log("Analytics payload", data);
 
-  const c = data.kpis.calling;
+    const rawCalling = data.kpis?.calling || {};
 
- el.innerHTML = `
-  <div class="grid summary-grid">
-    <div class="card summary">
-      <div class="summary-label">Codec Failures</div>
-      <div class="summary-value">${summary.codec || 0}</div>
-    </div>
-    <div class="card summary">
-      <div class="summary-label">PSTN Failures</div>
-      <div class="summary-value">${summary.pstn || 0}</div>
-    </div>
-    <div class="card summary">
-      <div class="summary-label">Routing Failures</div>
-      <div class="summary-value">${summary.routing || 0}</div>
-    </div>
-    <div class="card summary">
-      <div class="summary-label">Network Failures</div>
-      <div class="summary-value">${summary.network || 0}</div>
-    </div>
-  </div>
+    const calling = {
+      totalCalls:
+        rawCalling.totalCalls ??
+        rawCalling.callCount ??
+        0,
 
-  <div class="table-wrap" style="margin-top:16px;">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Time</th>
-          <th>From</th>
-          <th>To</th>
-          <th>Duration</th>
-          <th>Result</th>
-          <th>Cause</th>
-          <th>Site</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${data.records.map(r => `
-          <tr>
-            <td>${new Date(r.startTime).toLocaleString()}</td>
-            <td class="mono">${r.from}</td>
-            <td class="mono">${r.to}</td>
-            <td>${r.durationSec}s</td>
-            <td>${r.failed ? `<span class="health-red">Failed</span>` : `<span class="health-green">OK</span>`}</td>
-            <td class="mono">${r.failureCause || "—"}</td>
-            <td>${r.site}</td>
-          </tr>
-        `).join("")}
-      </tbody>
-    </table>
-  </div>
-`;
+      failedCalls:
+        rawCalling.failedCalls ??
+        rawCalling.failedCallCount ??
+        0,
+
+      failedPct:
+        rawCalling.failedCallRate != null
+          ? Math.round(rawCalling.failedCallRate * 100)
+          : rawCalling.callCount
+            ? Math.round((rawCalling.failedCalls / rawCalling.callCount) * 100)
+            : 0,
+
+      pstnCalls: rawCalling.pstnCalls ?? 0,
+
+      pstnPct:
+        rawCalling.callCount
+          ? Math.round((rawCalling.pstnCalls / rawCalling.callCount) * 100)
+          : 0,
+
+      avgDurationSeconds:
+        rawCalling.avgDurationSeconds ??
+        rawCalling.averageDuration ??
+        0,
+
+      peakConcurrentCalls:
+        rawCalling.peakConcurrentCalls ??
+        rawCalling.peakCalls ??
+        "—",
+
+      hourly:
+        Array.isArray(rawCalling.hourly)
+          ? rawCalling.hourly
+          : []
+    };
+
+    el.innerHTML = `
+      <div class="kpi-row">
+        <div class="kpi">
+          <div class="muted">Total Calls</div>
+          <b>${calling.totalCalls}</b>
+        </div>
+        <div class="kpi">
+          <div class="muted">Failed Calls</div>
+          <b>${calling.failedCalls}</b>
+        </div>
+        <div class="kpi">
+          <div class="muted">Failure %</div>
+          <b>${calling.failedPct}%</b>
+        </div>
+        <div class="kpi">
+          <div class="muted">PSTN Usage</div>
+          <b>${calling.pstnPct}%</b>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <div class="row between">
+          <div class="card-title">Calling Volume (Hourly)</div>
+          <span class="muted small">Last 24 hours</span>
+        </div>
+
+        ${
+          calling.hourly.length
+            ? renderTrendBars(
+                calling.hourly.map(h => ({
+                  value: h.calls ?? 0,
+                  label: h.hour ?? "—",
+                  level: "green"
+                }))
+              )
+            : `<div class="muted">No hourly data available</div>`
+        }
+      </div>
+    `;
+  } catch (err) {
+    console.error("Analytics hydrate failed:", err);
+
+    el.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-title">Analytics unavailable</div>
+        <div class="empty-text">${escapeHtml(err.message)}</div>
+      </div>
+    `;
+  }
 }
+
    /* ============================
    NORMALIZE ANALYTICS KPIs
 ============================ */
