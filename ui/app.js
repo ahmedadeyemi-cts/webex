@@ -853,26 +853,45 @@ function applyDeviceFilters() {
   }
 }
 function normalizePstnLocation(loc, customer) {
-  const pstnType = loc.pstnType || loc.type || "unknown";
-  const mainNumber = loc.mainNumber || "—";
-  const e911 = Boolean(loc.e911Enabled);
-  const redundancy = loc.redundancy || "none";
+  const pstn = loc.pstn || {};
 
-  const e911Risk = e911
+  const pstnType =
+    pstn.type ||
+    loc.pstnType ||
+    "Unknown";
+
+  const mainNumber =
+    pstn.mainNumber ||
+    loc.mainNumber ||
+    "—";
+
+  const e911Enabled =
+    pstn.e911Enabled === true;
+
+  const redundancy =
+    pstn.redundancy ||
+    "none";
+
+  // E911 risk
+  const e911Risk = e911Enabled
     ? { level: "green", label: "Enabled" }
     : { level: "red", label: "Missing" };
 
+  // Redundancy scoring
   const redundancyScore =
     redundancy === "dual"
       ? { level: "green", label: "Redundant" }
       : redundancy === "single"
-      ? { level: "yellow", label: "Single" }
+      ? { level: "yellow", label: "Single Path" }
       : { level: "red", label: "None" };
 
+  // Overall PSTN status
   const status =
-    e911 && redundancy !== "none"
-      ? "ok"
-      : "error";
+    e911Enabled && redundancy !== "none"
+      ? "green"
+      : e911Enabled
+      ? "yellow"
+      : "red";
 
   return {
     name: loc.name || "Unknown location",
@@ -883,7 +902,7 @@ function normalizePstnLocation(loc, customer) {
     status,
     notes: (loc.issues || []).join(", ") || "—",
     controlHubUrl: customer?.orgId
-      ? `https://admin.webex.com/locations`
+      ? "https://admin.webex.com/locations"
       : "#"
   };
 }
@@ -1159,11 +1178,20 @@ async function hydratePstn(key) {
   `;
 
   try {
-    const data = await loadPstn(key);
+    // ✅ CORRECT LOADER
+    const data = await loadPstnHealth(key);
     console.log("PSTN Health payload", data);
 
-    const locations = (data.locations || []).map(loc =>
-      normalizePstnLocation(loc, data.customer)
+    if (!data?.ok) {
+      throw new Error("PSTN API returned invalid response");
+    }
+
+    const customer = data.customer || {};
+    const rawLocations = Array.isArray(data.locations) ? data.locations : [];
+
+    // ✅ SAFE NORMALIZATION
+    const locations = rawLocations.map(loc =>
+      normalizePstnLocation(loc, customer)
     );
 
     el.innerHTML = `
@@ -1190,6 +1218,7 @@ async function hydratePstn(key) {
                     <td>
                       <a href="${l.controlHubUrl}"
                          target="_blank"
+                         rel="noopener"
                          class="link">
                         ${escapeHtml(l.name)}
                       </a>
@@ -1206,12 +1235,8 @@ async function hydratePstn(key) {
                         ${l.redundancyScore.label}
                       </span>
                     </td>
-                    <td>
-                      ${healthBadge(l.status === "ok" ? "green" : "red")}
-                    </td>
-                    <td class="muted small">
-                      ${escapeHtml(l.notes)}
-                    </td>
+                    <td>${healthBadge(l.status)}</td>
+                    <td class="muted small">${escapeHtml(l.notes)}</td>
                   </tr>
                 `).join("")}
               </tbody>
@@ -1223,14 +1248,19 @@ async function hydratePstn(key) {
       </div>
     `;
   } catch (err) {
+    console.error("PSTN hydrate failed:", err);
+
     el.innerHTML = `
       <div class="empty-state">
         <div class="empty-title">PSTN health unavailable</div>
-        <div class="empty-text">${escapeHtml(err.message)}</div>
+        <div class="empty-text">
+          ${escapeHtml(err.message || "Unable to load PSTN data")}
+        </div>
       </div>
     `;
   }
 }
+
 /* =========================================================
    CDR UI (Call Detail Summary)
 ========================================================= */
