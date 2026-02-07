@@ -662,32 +662,32 @@ function renderDeficientSkus(rows) {
   if (!tbody) return;
 
   tbody.innerHTML = "";
+
   if (!rows.length) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="4" class="muted">No deficiencies</td>
-      </tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" class="muted">No deficiencies</td></tr>`;
     return;
   }
 
   for (const r of rows) {
+    const needed = Number(r.licensesNeeded ?? 0);
+
+    let severityClass = "severity-ok";
+    if (needed > 10) severityClass = "severity-critical";
+    else if (needed > 5) severityClass = "severity-medium";
+    else if (needed > 0) severityClass = "severity-low";
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${escapeHtml(r.sku)}</td>
-
+      <td class="mono">${r.available}</td>
       <td class="mono">
-        ${Number(r.available ?? 0)}
+        ${r.thresholdCount}
+        <span class="muted small">(${r.thresholdPct}%)</span>
       </td>
-
       <td class="mono">
-        ${Number(r.thresholdCount ?? 0)}
-        <span class="muted small">
-          (${Number(r.thresholdPct ?? 0)}%)
+        <span class="license-needed ${severityClass}">
+          ${needed}
         </span>
-      </td>
-
-      <td class="mono">
-        <strong>${Number(r.licensesNeeded ?? 0)}</strong>
       </td>
     `;
     tbody.appendChild(tr);
