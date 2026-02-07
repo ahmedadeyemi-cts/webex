@@ -853,31 +853,39 @@ function applyDeviceFilters() {
   }
 }
 function normalizePstnLocation(loc, customer) {
-  const pstn = loc.pstn || {};
+  // Webex Control Hub nesting
+  const calling = loc.calling || {};
+  const pstn = calling.pstn || {};
+  const emergency = calling.emergencyCalling || {};
 
   const pstnType =
     pstn.type ||
-    loc.pstnType ||
+    pstn.provider ||
     "Unknown";
 
   const mainNumber =
     pstn.mainNumber ||
-    loc.mainNumber ||
+    calling.mainNumber ||
     "—";
 
   const e911Enabled =
-    pstn.e911Enabled === true;
+    emergency.enabled === true ||
+    emergency.routing === "on";
 
   const redundancy =
     pstn.redundancy ||
-    "none";
+    pstn.secondaryProvider
+      ? "dual"
+      : pstnType !== "Unknown"
+        ? "single"
+        : "none";
 
-  // E911 risk
+  // E911 badge
   const e911Risk = e911Enabled
     ? { level: "green", label: "Enabled" }
     : { level: "red", label: "Missing" };
 
-  // Redundancy scoring
+  // Redundancy badge
   const redundancyScore =
     redundancy === "dual"
       ? { level: "green", label: "Redundant" }
@@ -885,7 +893,7 @@ function normalizePstnLocation(loc, customer) {
       ? { level: "yellow", label: "Single Path" }
       : { level: "red", label: "None" };
 
-  // Overall PSTN status
+  // Overall status
   const status =
     e911Enabled && redundancy !== "none"
       ? "green"
@@ -900,13 +908,16 @@ function normalizePstnLocation(loc, customer) {
     e911Risk,
     redundancyScore,
     status,
-    notes: (loc.issues || []).join(", ") || "—",
-    controlHubUrl: customer?.orgId
-      ? "https://admin.webex.com/locations"
-      : "#"
+    notes:
+      emergency.warning ||
+      pstn.warning ||
+      "—",
+    controlHubUrl:
+      customer?.orgId && loc.id
+        ? `https://admin.webex.com/locations/${loc.id}`
+        : "https://admin.webex.com/locations"
   };
 }
-
 
 function e911Risk(e911Enabled) {
   if (e911Enabled === true) {
@@ -1181,6 +1192,8 @@ async function hydratePstn(key) {
     // ✅ CORRECT LOADER
     const data = await loadPstnHealth(key);
     console.log("PSTN Health payload", data);
+    console.log("FIRST LOCATION RAW", data.locations?.[0]);
+
 
     if (!data?.ok) {
       throw new Error("PSTN API returned invalid response");
