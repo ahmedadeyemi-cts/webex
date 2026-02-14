@@ -1176,61 +1176,46 @@ async function hydrateCdr(key) {
 
   el.innerHTML = `<div class="muted">Loading call records…</div>`;
 
-  try {
-    // ✅ CORRECT
-    const data = await loadCdr(key);
-    console.log("CDR payload", data);
+  const data = await apiFetch(`/api/customer/${key}/cdr`);
+  console.log("CDR payload", data);
+  const summary = data.failureSummary || {};
 
-    if (!data?.ok) {
-      throw new Error(data?.error || "CDR API returned invalid response");
-    }
 
-    const records = Array.isArray(data.records) ? data.records : [];
-
-    if (!records.length) {
-      el.innerHTML = `<div class="muted">No CDR records available</div>`;
-      return;
-    }
-
-    el.innerHTML = `
-      <div class="table-wrap">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>From</th>
-              <th>To</th>
-              <th>Duration</th>
-              <th>Result</th>
-              <th>Site</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${records.map(r => `
-              <tr>
-                <td>${new Date(r.startTime).toLocaleString()}</td>
-                <td class="mono">${escapeHtml(r.from)}</td>
-                <td class="mono">${escapeHtml(r.to)}</td>
-                <td>${r.durationSec}s</td>
-                <td>${escapeHtml(r.result)}</td>
-                <td>${escapeHtml(r.site)}</td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-      </div>
-    `;
-  } catch (err) {
-    console.error("CDR hydrate failed:", err);
-
-    el.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-title">CDR unavailable</div>
-        <div class="empty-text">${escapeHtml(err.message)}</div>
-      </div>
-    `;
+  if (!data.records.length) {
+    el.innerHTML = `<div class="muted">No CDR records available</div>`;
+    return;
   }
+
+  el.innerHTML = `
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>From</th>
+            <th>To</th>
+            <th>Duration</th>
+            <th>Result</th>
+            <th>Site</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.records.map(r => `
+            <tr>
+              <td>${new Date(r.startTime).toLocaleString()}</td>
+              <td class="mono">${r.from}</td>
+              <td class="mono">${r.to}</td>
+              <td>${r.durationSec}s</td>
+              <td>${r.result}</td>
+              <td>${r.site}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
 }
+
 /* =========================================================
    Executive page
 ========================================================= */
